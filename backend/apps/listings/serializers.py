@@ -14,7 +14,7 @@ class ListingCreateSerializer(serializers.ModelSerializer):
         return value
 
 
-# ✅ Detail page — GET /api/listings/<id>/
+# Detail page — GET /api/listings/<id>/
 class ListingDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
@@ -31,7 +31,7 @@ class ListingDetailSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'owner']
 
 
-# ✅ Update listing— PUT / PATCH
+# Update listing— PUT / PATCH
 class ListingUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
@@ -43,7 +43,7 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
         return value
 
 
-# ✅ Compact list — GET /api/listings/
+# Compact list — GET /api/listings/
 class CompactListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
