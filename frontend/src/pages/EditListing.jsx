@@ -8,6 +8,8 @@ const EditListing = () => {
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [file, setFile] = useState(null);
+  const [originalListing, setOriginalListing] = useState(null);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     // TODO: Placeholder for fetching listing data
@@ -24,6 +26,7 @@ const EditListing = () => {
       setDescription(mockData.description);
       setPrice(mockData.price);
       setCategory(mockData.category);
+      setOriginalListing(mockData);
     };
 
     fetchListingData();
@@ -31,8 +34,39 @@ const EditListing = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log({ title, description, price, category, file });
+    setIsConfirming(true);
   };
+
+  const handleConfirmSubmit = () => {
+    console.log("Submitting changes:", { title, description, price, category, file });
+    setIsConfirming(false);
+    // TODO: Add navigation or success message after submission
+  };
+
+  const getChanges = () => {
+    const changes = {};
+    if (!originalListing) return changes;
+
+    if (title !== originalListing.title) {
+      changes.title = { from: originalListing.title, to: title };
+    }
+    if (description !== originalListing.description) {
+      changes.description = { from: originalListing.description, to: description };
+    }
+    if (price !== originalListing.price) {
+      changes.price = { from: originalListing.price, to: price };
+    }
+    if (category !== originalListing.category) {
+      changes.category = { from: originalListing.category, to: category };
+    }
+    if (file) {
+      changes.file = { from: "No file selected", to: file.name };
+    }
+    return changes;
+  };
+
+  const changes = getChanges();
+
 
   return (
     <div
@@ -43,6 +77,32 @@ const EditListing = () => {
         padding: "2rem",
       }}
     >
+      {isConfirming && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h2>Confirm Your Changes</h2>
+            {Object.keys(changes).length > 0 ? (
+              <ul style={styles.changesList}>
+                {Object.entries(changes).map(([key, value]) => (
+                  <li key={key} style={styles.changeItem}>
+                    <strong style={{ textTransform: 'capitalize' }}>{key}</strong>
+                    <p style={styles.changeDetail}>
+                      <span style={{ textDecoration: 'line-through', color: '#777' }}>{value.from}</span> → <strong>{value.to}</strong>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No changes were made.</p>
+            )}
+            <div style={styles.buttonGroup}>
+              <button onClick={handleConfirmSubmit} style={styles.confirmButton}>Confirm</button>
+              <button onClick={() => setIsConfirming(false)} style={styles.backButton}>Back to Edit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 style={{ fontSize: "3rem", fontWeight: "800", marginBottom: "2rem" }}>
         Edit Listing
       </h1>
@@ -134,5 +194,62 @@ const EditListing = () => {
     </div>
   );
 };
+
+const styles = {
+  overlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: '#fff',
+    padding: '2rem',
+    borderRadius: '8px',
+    maxWidth: '500px',
+    width: '90%',
+    color: '#333',
+  },
+  changesList: {
+    listStyleType: 'none',
+    padding: 0,
+    textAlign: 'left',
+  },
+  changeItem: {
+    marginBottom: '1rem',
+  },
+  changeDetail: {
+    margin: '0.5rem 0',
+  },
+  buttonGroup: {
+    marginTop: '2rem',
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '1rem',
+  },
+  confirmButton: {
+    backgroundColor: '#56018D',
+    color: '#fff',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+  backButton: {
+    backgroundColor: '#eee',
+    color: '#333',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+  },
+};
+
 
 export default EditListing;
