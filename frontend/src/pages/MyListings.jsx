@@ -22,7 +22,11 @@ export default function MyListings() {
   };
 
   const deleteListing = (id) => {
-    setListings(listings.filter(l => l.id !== id));
+    const confirmed = window.confirm("Are you sure you want to delete this listing?");
+    if (confirmed) {
+      setListings(prev => prev.filter(l => l.id !== id));
+      console.log(`Listing ${id} deleted`);
+    }
   };
 
   // ✅ Navigate to detail page only when card is clicked
@@ -37,10 +41,10 @@ export default function MyListings() {
         <ListingCard
           key={listing.id}
           {...listing}
-          onMarkSold={(e) => { e.stopPropagation(); markAsSold(listing.id); }}
-          onEdit={(e) => { e.stopPropagation(); editListing(listing.id); }}
-          onDelete={(e) => { e.stopPropagation(); deleteListing(listing.id); }}
-          onViewDetails={() => viewDetails(listing.id)} 
+          onMarkSold={() => markAsSold(listing.id)}
+          onEdit={() => editListing(listing.id)}
+          onDelete={() => deleteListing(listing.id)}
+          onViewDetails={() => viewDetails(listing.id)}
         />
       ))}
     </div>
