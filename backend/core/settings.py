@@ -34,7 +34,7 @@ if not SECRET_KEY:
             env_file.write(f"DJANGO_SECRET_KEY={SECRET_KEY}\n")
     
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'marketplace-env.eba-2uqrmgb2.us-east-1.elasticbeanstalk.com']
 
@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.listings",
     "rest_framework",
-    "rest_framework_simplejwt",
     "corsheaders",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -56,8 +55,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -148,6 +147,8 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
+    'USER_ID_FIELD': 'user_id',
+    "USER_ID_CLAIM": "user_id",
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': False,

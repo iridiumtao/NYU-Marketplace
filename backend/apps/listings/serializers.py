@@ -1,3 +1,4 @@
+from django.template.context_processors import request
 from rest_framework import serializers
 from apps.listings.models import Listing, ListingImage
 
@@ -25,7 +26,10 @@ class ListingCreateSerializer(serializers.ModelSerializer):
         if value < 0:
             raise serializers.ValidationError("Price must be non-negative.")
         return value
-
+    def create(self, validated_data):
+        request = self.context.get('request')
+        validated_data['user'] = request.user
+        return super().create(validated_data)
 
 class ListingImageSerializer(serializers.ModelSerializer):
     class Meta:
