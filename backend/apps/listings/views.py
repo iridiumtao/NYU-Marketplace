@@ -32,7 +32,6 @@ class ListingViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet, mixins.Li
         serializer.save(user=self.request.user)
 
     def perform_update(self, serializer):
-        # Prevent user from being changed by clients (optional but safe)
         serializer.save(user=getattr(self.get_object(), "user", self.request.user))
 
     @action(

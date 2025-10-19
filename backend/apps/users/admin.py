@@ -12,7 +12,6 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        # include your USERNAME_FIELD and any required fields for creation
         fields = ("email", "first_name", "last_name", "netid", "is_staff", "is_superuser", "is_active")
 
     def clean_password2(self):
@@ -46,7 +45,6 @@ class UserChangeForm(forms.ModelForm):
                   "is_active", "is_staff", "is_superuser", "groups", "user_permissions")
 
     def clean_password(self):
-        # Return the initial value regardless of what the user provides
         return self.initial.get("password")
 
 
