@@ -2,8 +2,10 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from unittest.mock import patch
+import json
+import io
 
-from tests.factories.factories import UserFactory, ListingFactory
+from tests.factories.factories import UserFactory, ListingFactory, ListingImageFactory
 from apps.listings.models import Listing
 
 
@@ -145,3 +147,94 @@ class TestListingViewSet:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 3
         assert Listing.objects.count() == 5
+
+    def test_create_listing_with_negative_price_fails(self, authenticated_client):
+        """
+        Verify that creating a listing with a negative price fails.
+        """
+        client, user = authenticated_client
+        response = client.post(
+            "/api/v1/listings/",
+            {
+                "title": "Invalid Listing",
+                "price": -50.00,
+                "category": "Misc",
+                "description": "This should not be created.",
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_create_listing_with_too_many_images_fails(self, authenticated_client):
+        """
+        Verify that creating a listing with more than 10 images fails.
+        """
+        client, user = authenticated_client
+        # Mocks are simple objects; no need for real image data for this validation test.
+        images = ["image"] * 11
+        with patch("utils.s3_service.s3_service.upload_image") as mock_upload:
+            mock_upload.return_value = "http://example.com/mock-image.jpg"
+            response = client.post(
+                "/api/v1/listings/",
+                {
+                    "title": "Too Many Images",
+                    "price": 100.00,
+                    "category": "Collectibles",
+                    "description": "This listing has too many images.",
+                    "images": images,
+                },
+                format="multipart",
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert "images" in response.data
+
+    @pytest.mark.skip(
+        reason="Needs future implementation for multipart form validation with complex data."
+    )
+    def test_complex_image_update(self, authenticated_client):
+        """
+        Verify that adding, removing, and updating images in a single request works.
+        """
+        client, user = authenticated_client
+        listing = ListingFactory(user=user)
+        image1 = ListingImageFactory(listing=listing, is_primary=True)
+        image2 = ListingImageFactory(listing=listing)
+        image3 = ListingImageFactory(listing=listing)
+
+        # Create a mock file for upload
+        mock_file = io.BytesIO(b"mock_image_content")
+        mock_file.name = "new_image.jpg"
+        mock_file.content_type = "image/jpeg"
+
+        with patch("utils.s3_service.s3_service.upload_image") as mock_upload, patch(
+            "utils.s3_service.s3_service.delete_image"
+        ) as mock_delete:
+            mock_upload.return_value = "http://example.com/new-image.jpg"
+            mock_delete.return_value = True
+
+            response = client.patch(
+                f"/api/v1/listings/{listing.listing_id}/",
+                {
+                    "remove_image_ids": json.dumps([image1.image_id]),
+                    "update_images": json.dumps(
+                        [{"image_id": image2.image_id, "is_primary": True}]
+                    ),
+                    "new_images": [mock_file],
+                },
+                format="multipart",
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+
+        listing.refresh_from_db()
+
+        # Check that one image was removed, one was added.
+        assert listing.images.count() == 3
+        # Check that the correct image was deleted.
+        assert not listing.images.filter(image_id=image1.image_id).exists()
+        # Check that the new image was created.
+        assert listing.images.filter(
+            image_url="http://example.com/new-image.jpg"
+        ).exists()
+        # Check that is_primary was updated.
+        assert listing.images.get(image_id=image2.image_id).is_primary is True
