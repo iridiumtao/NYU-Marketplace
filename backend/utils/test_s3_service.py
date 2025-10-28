@@ -99,3 +99,106 @@ def test_delete_image_failure(s3_service):
     success = s3_service.delete_image(image_url)
 
     assert success is False
+
+
+@patch("utils.s3_service.settings")
+def test_delete_image_generic_exception(mock_settings, s3_service):
+    """
+    Verify that a generic exception during deletion is caught and handled.
+    """
+    mock_settings.AWS_S3_REGION_NAME = "us-east-1"
+    s3_service.s3_client.delete_object.side_effect = Exception("Unexpected error")
+    image_url = f"https://{s3_service.bucket_name}.s3.us-east-1.amazonaws.com/listings/1/test.jpg"
+
+    success = s3_service.delete_image(image_url)
+
+    assert success is False
+
+
+@patch("utils.s3_service.settings")
+def test_delete_image_invalid_url(mock_settings, s3_service):
+    """
+    Verify that delete_image handles invalid URLs gracefully.
+    """
+    mock_settings.AWS_S3_REGION_NAME = "us-east-1"
+    # URL that won't match the expected format
+    invalid_url = "http://invalid-url.com/image.jpg"
+
+    success = s3_service.delete_image(invalid_url)
+
+    # Should return False because key extraction fails
+    assert success is False
+
+
+@patch("utils.s3_service.Image.open")
+def test_upload_image_generic_exception(mock_image_open, s3_service):
+    """
+    Verify that a generic (non-ClientError) exception during upload is caught and re-raised.
+    """
+    mock_file = MagicMock()
+    mock_file.name = "test.jpg"
+    mock_file.size = 1024  # Valid size
+
+    # Simulate a generic exception (not ClientError)
+    s3_service.s3_client.upload_fileobj.side_effect = Exception("Network timeout")
+
+    with pytest.raises(Exception, match="Network timeout"):
+        s3_service.upload_image(mock_file, 1)
+
+
+@patch("utils.s3_service.Image.open")
+def test_validate_image_file_too_large(mock_image_open, s3_service):
+    """
+    Verify that files larger than 10MB are rejected.
+    """
+    mock_file = MagicMock()
+    mock_file.name = "large.jpg"
+    mock_file.size = 11 * 1024 * 1024  # 11MB, exceeds limit
+
+    with pytest.raises(ValueError, match="Image file size cannot exceed 10MB"):
+        s3_service.upload_image(mock_file, 1)
+
+
+@patch("utils.s3_service.Image.open")
+def test_validate_image_invalid_extension(mock_image_open, s3_service):
+    """
+    Verify that files with invalid extensions are rejected.
+    """
+    mock_file = MagicMock()
+    mock_file.name = "document.pdf"  # Invalid extension
+    mock_file.size = 1024  # Valid size
+
+    with pytest.raises(ValueError, match="Invalid file extension"):
+        s3_service.upload_image(mock_file, 1)
+
+
+@patch("utils.s3_service.Image.open")
+def test_validate_image_corrupted_file(mock_image_open, s3_service):
+    """
+    Verify that corrupted image files are rejected.
+    """
+    mock_file = MagicMock()
+    mock_file.name = "corrupted.jpg"
+    mock_file.size = 1024  # Valid size
+
+    # Simulate Image.open raising an exception for corrupted file
+    mock_image_open.side_effect = Exception("Cannot identify image file")
+
+    with pytest.raises(ValueError, match="Invalid image file"):
+        s3_service.upload_image(mock_file, 1)
+
+
+@patch("utils.s3_service.settings")
+def test_extract_key_from_url_exception_handling(mock_settings, s3_service):
+    """
+    Verify that _extract_key_from_url handles exceptions gracefully.
+    """
+    mock_settings.AWS_S3_REGION_NAME = "us-east-1"
+
+    # Test with None (will cause AttributeError when calling .split())
+    result = s3_service._extract_key_from_url(None)
+    assert result is None
+
+    # Test with non-matching URL
+    result = s3_service._extract_key_from_url("http://different-bucket.com/image.jpg")
+    assert result is None
