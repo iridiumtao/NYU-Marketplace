@@ -3,6 +3,9 @@ from rest_framework import serializers
 from django.db import models
 from apps.listings.models import Listing, ListingImage
 from utils.s3_service import s3_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ListingImageSerializer(serializers.ModelSerializer):
@@ -86,9 +89,6 @@ class ListingCreateSerializer(serializers.ModelSerializer):
             except Exception as e:
                 # If any image upload fails, we should handle it gracefully
                 # For now, log the error and continue with other images
-                import logging
-
-                logger = logging.getLogger(__name__)
                 logger.error(
                     f"Failed to upload image for listing {listing.listing_id}: {str(e)}"
                 )
@@ -201,10 +201,6 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        import logging
-
-        logger = logging.getLogger(__name__)
-
         # Extract image-related data
         new_images = validated_data.pop("new_images", [])
         remove_image_ids = validated_data.pop("remove_image_ids", [])
