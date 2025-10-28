@@ -1,6 +1,6 @@
 import pytest
 from rest_framework.test import APIClient
-from rest_framework import status
+from rest_framework import serializers, status
 from unittest.mock import patch
 import json
 import io
@@ -187,6 +187,36 @@ class TestListingViewSet:
             )
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             assert "images" in response.data
+
+    def test_s3_upload_failure_handled_gracefully(self, authenticated_client):
+        """
+        Verify that if an S3 upload fails, the listing is still created,
+        and the error is logged.
+        """
+        client, user = authenticated_client
+        with patch("utils.s3_service.s3_service.upload_image") as mock_upload, patch(
+            "apps.listings.serializers.logger"
+        ) as mock_logger:
+            mock_upload.side_effect = serializers.ValidationError("S3 is down")
+
+            # A simple mock for a file upload
+            mock_file = io.BytesIO(b"content")
+            mock_file.name = "test.jpg"
+            mock_file.content_type = "image/jpeg"
+
+            response = client.post(
+                "/api/v1/listings/",
+                {
+                    "title": "Test S3 Fail",
+                    "price": 20.00,
+                    "category": "Books",
+                    "description": "A book.",
+                    "images": [mock_file],
+                },
+                format="multipart",
+            )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert Listing.objects.count() == 0
 
     @pytest.mark.skip(
         reason="Needs future implementation for multipart form validation with complex data."
