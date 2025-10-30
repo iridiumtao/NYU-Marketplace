@@ -55,6 +55,7 @@ ALLOWED_HOSTS_ENV = os.environ.get("ALLOWED_HOSTS")
 # to the env ALLOWED_HOSTS.
 if ALLOWED_HOSTS_ENV:
     ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(",")]
+    ALLOWED_HOSTS += ["*"] 
 else:
     # For development (local runserver)
     ALLOWED_HOSTS = ["127.0.0.1", "localhost", "*"]
@@ -74,6 +75,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_filters"
 ]
+if DEBUG:
+    INSTALLED_APPS += ['django_extensions']
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
