@@ -1,6 +1,6 @@
 from rest_framework.decorators import action
-from django.shortcuts import render
-from rest_framework import viewsets, mixins, status
+from django.db.models import Q
+from rest_framework import viewsets, mixins, status, pagination
 from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
     BasePermission,
@@ -39,6 +39,13 @@ class IsOwnerOrReadOnly(BasePermission):
 
         # Write permissions (PUT, PATCH, DELETE) only allowed to the owner
         return obj.user == request.user
+
+
+class ListingPagination(pagination.PageNumberPagination):
+    page_size = 12
+    page_size_query_param = "page_size"
+    max_page_size = 60
+
 
 
 # Create your views here.
@@ -127,6 +134,39 @@ class ListingViewSet(
         user_listings = Listing.objects.filter(user=request.user)
         serializer = self.get_serializer(user_listings, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @action(detail=False, methods=["get"], url_path="search")
+    def search(self, request):
+        '''
+        Search listings by keyword across title/description/location/category.
+
+        Usage:
+          GET /api/v1/listings/search/?q=desk
+          GET /api/v1/listings/search/?q=lamp&ordering=price&page=2&page_size=12
+
+        '''
+
+        q =(request.GET.get("q") or "").strip()
+
+        if not q:
+            return Response({"error": "Please enter a search query 'q'."},
+                            status=status.HTTP_400_BAD_REQUEST
+                            )
+
+        base_qs = self.get_queryset()
+
+        qs = base_qs.filter(
+            Q(title__icontains=q) |
+            Q(description__icontains=q) |
+            Q(location__icontains=q) |
+            Q(category__icontains=q)
+        )
+
+        paginator = ListingPagination()
+        page = paginator.paginate_queryset(qs, self.request, view=self)
+        serializer = CompactListingSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def perform_destroy(self, instance):
         """Delete listing and associated S3 images"""
