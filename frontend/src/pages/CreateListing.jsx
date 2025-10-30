@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import apiClient from "../api/client";
-import { endpoints } from "../api/endpoints";
+import { createListing } from "../api/listings";
 
 // Match these with the Filters component options
 const CATEGORIES = ["Electronics", "Books", "Furniture", "Sports", "Clothing", "Other"];
@@ -81,12 +80,8 @@ const CreateListing = () => {
         formData.append("images", image);
       });
 
-      // Send request using apiClient
-      await apiClient.post(endpoints.listings, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Send request using createListing API function
+      await createListing(formData);
 
       // Redirect immediately to My Listings page
       navigate("/my-listings");

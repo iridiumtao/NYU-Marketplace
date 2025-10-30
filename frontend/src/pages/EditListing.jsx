@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getListing, patchListing } from "../api/listings";
-import apiClient from "../api/client";
-import { endpoints } from "../api/endpoints";
+import { getListing, updateListing } from "../api/listings";
 
 // Match these with the CreateListing component
 const CATEGORIES = ["Electronics", "Books", "Furniture", "Sports", "Clothing", "Other"];
@@ -127,12 +125,8 @@ const EditListing = () => {
         formData.append("remove_image_ids", JSON.stringify(removeImageIds));
       }
 
-      // Send PATCH request using apiClient
-      await apiClient.patch(`${endpoints.listings}${id}/`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Send PATCH request using updateListing API function
+      await updateListing(id, formData);
 
       // Redirect to My Listings page
       navigate("/my-listings");
