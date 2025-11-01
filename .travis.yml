@@ -79,8 +79,8 @@ jobs:
     # -------------------------------------------------------------------------
 
     # Job 1.1: Backend (Django) Tests
-    - name: "Backend (Django) Tests"
-      stage: test
+    - stage: Backend (Django) Tests
+      name: "Backend (Django) Tests"
       language: python
       python: "3.11"
       services:
@@ -123,8 +123,8 @@ jobs:
         - pytest backend/ # Finds pyproject.toml
 
     # Job 1.2: Frontend (React) Tests
-    - name: "Frontend (React) Tests"
-      stage: test
+    - stage: "Frontend (React) Tests"
+      name: "Frontend (React) Tests"
       language: node_js
       node_js: "20"     # Use a recent Node.js LTS version
       
