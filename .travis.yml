@@ -12,14 +12,14 @@
 # |   | Backend (Django)  |  | Frontend      |
 # |   | Tests             |  | (React) Tests |
 # |   +-------------------+  +---------------+
-# |          |                      |
-# |          +---------+  +---------+
-# |                    |  |
-# |                    v  v
-# |              (Wait for BOTH)
-# |                    |
-# |             [  Success?  ]
-# |                    |
+# |          |                      |        |
+# |          +---------+  +---------+        |
+# |                    |  |                  |
+# |                    v  v                  |
+# |              (Wait for BOTH)             |
+# |                    |                     |
+# |             [  Success?  ]               |
+# |                    |                     |
 # +--------------------|---------------------+
 #                      |
 #                      v (Only if ALL test jobs pass)
@@ -57,8 +57,6 @@
 #              This is triggered ONLY on successful merges to 'develop' or 'main'.
 # -----------------------------------------------------------------------------
 
-# We use 'shell' as the base language because jobs
-# will specify their own (python or node_js).
 language: shell
 os: linux
 dist: noble
@@ -227,8 +225,7 @@ jobs:
           zip_file: deploy.zip
           on:
             branch: main
-            # TODO: Change to gcivil-nyu-org/team3-mon-fall25
-            repo: iridiumtao/NYU-Marketplace
+            repo: gcivil-nyu-org/team3-mon-fall25
 
 # -----------------------------------------------------------------------------
 # (Optional but Recommended) Disable email spam
