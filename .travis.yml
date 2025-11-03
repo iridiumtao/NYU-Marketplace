@@ -189,6 +189,13 @@ jobs:
         - cd ..
         - echo "Frontend build complete."
       
+      before_deploy:
+        - echo "Creating deployment package from backend directory..."
+        - cd backend
+        - zip -r ../deploy.zip . -x "*.git*" -x "*__pycache__*" -x "*.pyc"
+        - cd ..
+        - ls -lh deploy.zip
+      
       deploy:
         # Deploy to DEV
         - provider: elasticbeanstalk
@@ -200,6 +207,7 @@ jobs:
           bucket: "nyu-marketplace-dev-images"
           edge: true
           cleanup: false
+          zip_file: deploy.zip
           on:
             branch: develop
             # TODO: Change to gcivil-nyu-org/team3-mon-fall25
@@ -215,6 +223,7 @@ jobs:
           bucket: "nyu-marketplace-images"
           edge: true
           cleanup: false
+          zip_file: deploy.zip
           on:
             branch: main
             # TODO: Change to gcivil-nyu-org/team3-mon-fall25
