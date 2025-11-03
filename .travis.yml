@@ -189,6 +189,7 @@ jobs:
         - cd ..
         - echo "Frontend build complete."
       
+      # package the backend directory into a zip file to only deploy the backend code
       before_deploy:
         - echo "Creating deployment package from backend directory..."
         - cd backend
