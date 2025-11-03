@@ -211,7 +211,7 @@ jobs:
           secret_access_key: $AWS_SECRET_ACCESS_KEY
           region: "us-east-1"
           app: "nyu-marketplace"
-          env: "nyu-marketplace-prod"
+          env: "nyu-marketplace-env"
           bucket: "nyu-marketplace-images"
           edge: true
           cleanup: false
