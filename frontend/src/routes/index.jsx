@@ -1,9 +1,10 @@
 // Application routes configuration.
-import React from 'react';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "../contexts/AuthContext";
 import ProtectedRoute from "../components/ProtectedRoute";
 import Home from "../pages/Home";
+import BrowseListings from "../pages/BrowseListings";
 import CreateListing from "../pages/CreateListing";
 import App from "../App";
 import MyListings from "../pages/MyListings";
@@ -29,14 +30,15 @@ export default function AppRouter() {
             }
           >
             <Route index element={<Home />} />
-            <Route path="/listing/:id" element={<ListingDetail />} />
-            <Route path="/listing/:id/edit" element={<EditListing />} />
-            <Route path="/create-listing" element={<CreateListing />} />
-            <Route path="/my-listings" element={<MyListings />} />
+              <Route path="/browse" element={<BrowseListings />} />
+              <Route path="/listing/:id" element={<ListingDetail />} />
+              <Route path="/listing/:id/edit" element={<EditListing />} />
+              <Route path="/create-listing" element={<CreateListing />} />
+              <Route path="/my-listings" element={<MyListings />} />
           </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
 }
-

@@ -1,7 +1,8 @@
 import React from "react";
-import { Outlet, Link, useNavigate } from "react-router-dom";
+import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import "./App.css";
+import logoImage from "./assets/images/nyu-marketplace-header-logo.png";
 
 export default function App() {
   const { user, logout } = useAuth();
@@ -9,79 +10,66 @@ export default function App() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
+
+  const purple = "#56018D";
 
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background: "#56018D",
-        color: "#fff",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+  style={{
+    minHeight: "100vh",
+    background: "var(--bg)",      // light page background
+    color: "#111",                 // normal text; nav sets its own color
+    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    display: "flex",
+    flexDirection: "column",
+  }}
+>
       {/* Global Navbar */}
-      <nav
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "40px",
-          padding: "20px 0",
-          fontSize: "1.2rem",
-          fontWeight: "500",
-          backgroundColor: "#56018D",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
+      <nav style={{ backgroundColor: "#56018D" }}>
+  <div className="container nav">
+    {/* Brand (left) */}
+    <div className="nav__brand">
+      <img 
+        src={logoImage} 
+        alt="NYU Marketplace"
+        style={{ 
+          height: "45px",
+          width: "auto",
+          maxWidth: "90px",
+          marginRight: "12px",
+          borderRadius: "10px",
+          padding: "4px",
+          background: "#ffffff20",  // semi-transparent white for a subtle highlight
+          backdropFilter: "blur(5px)"
         }}
-      >
-        <Link to="/" style={{ color: "#fff", textDecoration: "none" }}>
-          Home
-        </Link>
-        <Link to="/create-listing" style={{ color: "#fff", textDecoration: "none" }}>
-          Create Listing
-        </Link>
-        <Link to="/my-listings" style={{ color: "#fff", textDecoration: "none" }}>
-          My Listings
-        </Link>
-        <span style={{ color: "#fff", opacity: 0.8, fontSize: "1rem" }}>
-          {user?.email || user?.netid}
-        </span>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: "transparent",
-            border: "2px solid #fff",
-            color: "#fff",
-            padding: "8px 16px",
-            borderRadius: "5px",
-            cursor: "pointer",
-            fontSize: "1rem",
-            fontWeight: "500",
-            transition: "all 0.2s",
-          }}
-          onMouseOver={(e) => {
-            e.target.style.background = "#fff";
-            e.target.style.color = "#56018D";
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = "transparent";
-            e.target.style.color = "#fff";
-          }}
-        >
-          Logout
-        </button>
-      </nav>
+      />
+      <span className="nav__brandText">Buy & Sell on Campus</span>
+    </div>
 
-      {/* Render page content here */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Outlet />
-      </div>
+    {/* Links (right) */}
+    <div className="nav__links">
+      <NavLink to="/" end className="nav__link">Home</NavLink>
+      <NavLink to="/browse" className="nav__link">Browse</NavLink>
+      <NavLink to="/create-listing" className="nav__link">Create Listing</NavLink>
+      <NavLink to="/my-listings" className="nav__link">My Listings</NavLink>
+      <span className="nav__user">{user?.email || user?.netid || ""}</span>
+      {user ? (
+        <button className="nav__btn" onClick={handleLogout}>Logout</button>
+      ) : (
+        <Link className="nav__btn nav__btn--invert" to="/login">Login</Link>
+      )}
+    </div>
+  </div>
+</nav>
+
+
+      {/* Page content */}
+<div style={{ flex: 1 /* no flex centering here */ }}>
+  <Outlet />
+</div>
+
     </div>
   );
 }
