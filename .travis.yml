@@ -209,8 +209,7 @@ jobs:
           zip_file: deploy.zip
           on:
             branch: develop
-            # TODO: Change to gcivil-nyu-org/team3-mon-fall25
-            repo: iridiumtao/NYU-Marketplace
+            repo: gcivil-nyu-org/team3-mon-fall25
         
         # Deploy to PROD
         - provider: elasticbeanstalk
