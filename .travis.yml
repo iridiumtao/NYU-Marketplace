@@ -108,9 +108,9 @@ jobs:
       
       script:
         # --- Run all backend quality checks ---
-        #- echo "Running backend linters..."
-        #- flake8 backend/
-        #- black backend/ --check
+        - echo "Running backend linters..."
+        - flake8 backend/
+        - black backend/ --check
         - echo "Running Django manage.py check..."
         - python backend/manage.py check
         - echo "Running Django collectstatic (validation)..."
@@ -146,8 +146,8 @@ jobs:
       
       script:
         # --- Run all frontend quality checks ---
-        #- echo "Running frontend lint..."
-        #- npm run lint --prefix frontend
+        - echo "Running frontend lint..."
+        - npm run lint --prefix frontend
         - echo "Running frontend tests with coverage..."
         - npm run test:coverage --prefix frontend
         - echo "Validating frontend production build..."
