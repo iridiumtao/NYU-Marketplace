@@ -5,6 +5,9 @@ from django.contrib.auth.models import (
 )
 from django.db import models
 
+# Import OTP models for admin registration
+from .models_otp import OTPAttempt, OTPAuditLog  # noqa: F401
+
 
 class UserManager(BaseUserManager):
     """Custom user manager for email-based authentication"""

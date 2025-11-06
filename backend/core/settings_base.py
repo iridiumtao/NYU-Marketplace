@@ -54,7 +54,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "frontend_build"],
+        "DIRS": [BASE_DIR / "frontend_build", BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -117,6 +117,9 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     # Don't set IsAuthenticated as default - let views control their own permissions
+    "DEFAULT_THROTTLE_RATES": {
+        "otp": "5/hour",
+    },
 }
 
 # JWT settings

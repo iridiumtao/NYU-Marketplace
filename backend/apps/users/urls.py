@@ -14,9 +14,12 @@ urlpatterns = router.urls
                                                     and send OTP email
     2. POST         /api/v1/auth/verify-otp/     Verify OTP and activate
                                                     user account
-    3. POST         /api/v1/auth/login/           Login user
+    3. POST         /api/v1/auth/send-otp/       Send OTP to existing user
+    4. POST         /api/v1/auth/resend-otp/     Resend OTP (invalidates
+                                                    previous)
+    5. POST         /api/v1/auth/login/           Login user
                                                     (requires email
                                                     verification)
-    4. GET          /api/v1/auth/me/             Get current authenticated
+    6. GET          /api/v1/auth/me/             Get current authenticated
                                                     user details
 """

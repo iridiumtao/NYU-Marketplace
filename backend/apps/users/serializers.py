@@ -60,6 +60,21 @@ class OTPVerificationSerializer(serializers.Serializer):
         return value
 
 
+# Send OTP serializer (for existing users)
+class SendOTPSerializer(serializers.Serializer):
+    """Serializer for sending OTP to existing users"""
+
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        """Validate that email ends with @nyu.edu"""
+        if not value.endswith("@nyu.edu"):
+            raise serializers.ValidationError(
+                "Only NYU email addresses (@nyu.edu) are allowed"
+            )
+        return value
+
+
 # Compact user serializer for references
 class CompactUserSerializer(serializers.ModelSerializer):
     """Compact serializer for user references in other models"""
