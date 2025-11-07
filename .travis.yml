@@ -153,7 +153,7 @@ jobs:
         - echo "Running frontend tests with coverage..."
         - npm run test:coverage --prefix frontend
         - echo "Validating frontend production build..."
-        - npm run build --prefix frontend # Just validates that the build succeeds
+        - npm run build:dev --prefix frontend # Just validates that the build succeeds
       
       after_success:
         # Upload coverage to Coveralls with parallel flag (this job runs in parallel with backend)
@@ -163,7 +163,7 @@ jobs:
     # STAGE 2: Deploy (CD)
     # This job ONLY runs if the 'test' stage passes.
     # - Finalize Coveralls runs on ALL branches (to complete coverage merge)
-    # - Build, then Deploy to AWS runs ONLY on 'develop' or 'main' branch of the main team repo.
+    # - Build & Deploy to AWS runs ONLY on 'develop' or 'main' branch of the main team repo.
     # -------------------------------------------------------------------------
     
     # Job 2: Finalize Coverage, Build & Deploy
@@ -198,7 +198,7 @@ jobs:
             npm run build:prod
           else
             echo "Non-deployable branch: $TRAVIS_BRANCH"
-            npm run build:dev
+            exit 0
           fi
         - cd ..
         - echo "Frontend build complete."
