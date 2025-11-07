@@ -242,8 +242,3 @@ jobs:
           on:
             branch: main
             repo: gcivil-nyu-org/team3-mon-fall25
-
-# -----------------------------------------------------------------------------
-# (Optional but Recommended) Disable email spam
-notifications:
-  email: false
