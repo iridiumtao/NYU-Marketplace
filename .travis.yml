@@ -99,7 +99,6 @@ jobs:
         - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
         - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
         - AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME
-        # - COVERALLS_PARALLEL=true
 
       before_script:
         # Create the test database before running tests
@@ -130,16 +129,13 @@ jobs:
       after_success:
         # Upload coverage to Coveralls with parallel flag (this job runs in parallel with frontend)
         - echo "Uploading backend coverage to Coveralls..."
-        - cd backend && COVERALLS_FLAG_NAME="Backend Tests" coveralls || echo "Coveralls upload failed or not configured"
+        - cd backend && coveralls report --job-flag "Backend Tests" --parallel --build-number $TRAVIS_BUILD_NUMBER || echo "Coveralls upload failed or not configured"
 
     # Job 1.2: Frontend (React) Tests
     - name: "Frontend (React) Tests"
       language: node_js
       node_js: "20" # Use a recent Node.js LTS version
 
-      #env:
-        #- COVERALLS_PARALLEL=true
-      
       cache:
         directories:
           - frontend/node_modules # Cache dependencies for faster builds
@@ -150,6 +146,7 @@ jobs:
         - cd frontend
         - npm install
         - cd ..
+        - curl -L https://coveralls.io/coveralls-linux.tar.gz | sudo tar -xz -C /usr/local/bin
 
       script:
         # --- Run all frontend quality checks ---
@@ -162,7 +159,7 @@ jobs:
       
       after_success:
         # Upload coverage to Coveralls with parallel flag (this job runs in parallel with backend)
-        - cd frontend && COVERALLS_FLAG_NAME="Frontend Tests" npm run upload-coverage || echo "Coveralls upload failed or not configured"
+        - cd frontend && coveralls report --job-flag "Frontend Tests" --parallel --build-number $TRAVIS_BUILD_NUMBER || echo "Coveralls upload failed or not configured"
 
     # Job 1.3: Backend Compatibility Tests for Python 3.13
     - name: "Backend Compatibility Tests"
@@ -185,7 +182,6 @@ jobs:
         - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
         - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
         - AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME
-        # - COVERALLS_PARALLEL=true
 
       before_script:
         # Create the test database before running tests
@@ -224,8 +220,11 @@ jobs:
         - cd frontend
         - npm install
         - cd ..
+        - curl -L https://coveralls.io/coveralls-linux.tar.gz | sudo tar -xz -C /usr/local/bin
 
       script:
+        # Finalize parallel Coveralls build
+        - coveralls done --build-number $TRAVIS_BUILD_NUMBER || echo "Coveralls finalize failed"
         # Build frontend (runs on ALL branches, but only needed for develop/main)
         - echo "Starting production build for frontend..."
         - cd frontend
@@ -285,6 +284,3 @@ jobs:
           on:
             branch: main
             repo: gcivil-nyu-org/team3-mon-fall25
-
-#notifications:
-#  webhooks: https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN}
