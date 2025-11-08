@@ -225,6 +225,7 @@ jobs:
       script:
         # Build frontend (runs on ALL branches, but only needed for develop/main)
         - echo "Starting production build for frontend..."
+        - cd frontend
         - |
           if [[ "$TRAVIS_BRANCH" == "develop" ]]; then
             echo "Building for DEV environment..."
