@@ -1,4 +1,4 @@
-from .settings_base import *
+from .settings_base import *  # noqa: F403, F401
 import os
 
 DEBUG = True
@@ -9,6 +9,8 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesSto
 ALLOWED_HOSTS = [
     "nyu-marketplace-dev.eba-vjpy9jfw.us-east-1.elasticbeanstalk.com",
     os.environ.get("nyu-marketplace-dev-test.elasticbeanstalk.com"),
+    ".elasticbeanstalk.com",  # allow any EB CNAME
+    ".elb.amazonaws.com",  # allow the ALB health checker hostname
     "localhost",
 ]
 
@@ -32,7 +34,10 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME", "nyu_marketplace_dev"),
         "USER": os.environ.get("DB_USER", "nyu_app"),
         "PASSWORD": os.environ.get("DB_PASSWORD", "yourpassword"),
-        "HOST": os.environ.get("DB_HOST", "nyu-marketplace-dev-mysql.c4d68gyyij18.us-east-1.rds.amazonaws.com"),
+        "HOST": os.environ.get(
+            "DB_HOST",
+            "nyu-marketplace-dev-mysql.c4d68gyyij18.us-east-1.rds.amazonaws.com",
+        ),
         "PORT": os.environ.get("DB_PORT", "3306"),
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_ALL_TABLES'",
