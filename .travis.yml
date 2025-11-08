@@ -66,6 +66,10 @@ stages:
   - name: test
   - name: deploy
 
+env:
+  global:
+    - COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN
+
 # Define the matrix of jobs to run
 jobs:
   include:
