@@ -38,3 +38,4 @@ pytest-xdist>=3.8
 factory-boy>=3.3
 Faker>=37.12
 #coveralls>=4.0
+

@@ -15,6 +15,8 @@ import Chat from "../pages/Chat.jsx";
 // …
 
 
+import Profile from "../pages/Profile";
+import SellerProfile from "../pages/SellerProfile";
 
 export default function AppRouter() {
   return (
@@ -41,6 +43,8 @@ export default function AppRouter() {
               <Route path="/my-listings" element={<MyListings />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/chat/:conversationId" element={<Chat />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/seller/:username" element={<SellerProfile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

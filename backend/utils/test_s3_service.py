@@ -2,12 +2,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from botocore.exceptions import ClientError
-from utils.s3_service import S3Service
+from utils.s3_service import S3Service, _reset_s3_service
 
 
 @pytest.fixture
 def s3_service():
     """Fixture to provide an instance of S3Service with a mocked boto3 client."""
+    # Reset singleton before each test to ensure isolation
+    _reset_s3_service()
+
     with patch("utils.s3_service.boto3.client") as mock_boto_client:
         mock_s3 = MagicMock()
         mock_boto_client.return_value = mock_s3
@@ -16,6 +19,9 @@ def s3_service():
         service.s3_client = mock_s3
         service.bucket_name = "test-bucket"  # Set a mock bucket name
         yield service
+
+    # Reset singleton after each test
+    _reset_s3_service()
 
 
 @patch("utils.s3_service.Image.open")
