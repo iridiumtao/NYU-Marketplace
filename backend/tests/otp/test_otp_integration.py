@@ -9,6 +9,7 @@ from django.core import mail
 from apps.users.models import User
 from apps.users.models_otp import OTPAttempt, OTPAuditLog
 from apps.users.otp_service import get_otp, verify_otp_hash
+import re
 
 
 @pytest.fixture
@@ -41,11 +42,22 @@ class TestOTPRegistrationFlow:
         # Check OTP was sent
         assert len(mail.outbox) == 1
         otp = None
-        for line in mail.outbox[0].body.split("\n"):
-            if line.strip().isdigit() and len(line.strip()) == 6:
-                otp = line.strip()
-                break
-        assert otp is not None
+
+        # Extract OTP from email body - improved extraction
+        email_body = mail.outbox[0].body
+        # Look for 6-digit OTP in the email body
+        otp_match = re.search(r"\b\d{6}\b", email_body)
+        if otp_match:
+            otp = otp_match.group(0)
+        else:
+            # Fallback: try splitting by lines
+            for line in email_body.split("\n"):
+                stripped = line.strip()
+                if stripped.isdigit() and len(stripped) == 6:
+                    otp = stripped
+                    break
+
+        assert otp is not None, f"OTP not found in email body: {email_body[:200]}"
 
         # Step 2: Verify OTP
         response = api_client.post(
@@ -212,22 +224,35 @@ class TestAccountBlocking:
             email=email, password=password, is_email_verified=False
         )
 
-        # Make 5 failed attempts
-        for _ in range(5):
+        # Make 4 failed attempts (should return 400)
+        for i in range(4):
             response = api_client.post(
                 "/api/v1/auth/verify-otp/",
                 {"email": email, "otp": "000000"},
                 format="json",
             )
-            assert response.status_code == status.HTTP_400_BAD_REQUEST
+            assert (
+                response.status_code == status.HTTP_400_BAD_REQUEST
+            ), f"Attempt {i+1} should return 400, got {response.status_code}"
+
+        # 5th attempt should block and return 403
+        response = api_client.post(
+            "/api/v1/auth/verify-otp/",
+            {"email": email, "otp": "000000"},
+            format="json",
+        )
+        assert (
+            response.status_code == status.HTTP_403_FORBIDDEN
+        ), "5th attempt should block account and return 403"
 
         # Check account is blocked
         attempt = OTPAttempt.objects.get(email=email)
         assert attempt.is_blocked is True
+        assert attempt.attempts_count == 5
         user.refresh_from_db()
         assert user.is_active is False
 
-        # 6th attempt should return blocked error
+        # 6th attempt should also return 403 (already blocked)
         response = api_client.post(
             "/api/v1/auth/verify-otp/",
             {"email": email, "otp": "000000"},

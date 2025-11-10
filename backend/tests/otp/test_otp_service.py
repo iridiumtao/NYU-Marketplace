@@ -112,7 +112,12 @@ class TestOTPVerification:
 
     def test_verify_otp_expired(self):
         """Test verifying expired OTP"""
+        from django.core.cache import cache
+
         email = "test@nyu.edu"
+        # Clear any existing OTP for this email
+        cache.delete(f"otp_{email}")
+
         # Simulate expired OTP by not storing it
         assert verify_otp(email, "123456") is False
 
