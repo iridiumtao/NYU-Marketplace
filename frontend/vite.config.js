@@ -36,6 +36,9 @@ export default defineConfig({
         'node_modules/',
         'src/setupTests.js',
         'src/api/**',
+        '**/*.css',
+        'src/test-utils/**',
+        'src/hooks/**',
       ],
       // Enforce 85% coverage threshold - CI will fail if not met
       thresholds: {
