@@ -134,3 +134,10 @@ AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
 AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+
+# Django upload size limits
+# Configure to allow uploads up to 120MB (10MB × 10 images + overhead)
+# This matches nginx client_max_body_size configuration
+DATA_UPLOAD_MAX_MEMORY_SIZE = 120 * 1024 * 1024  # 120MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 120 * 1024 * 1024  # 120MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000  # Allow for many images and form fields

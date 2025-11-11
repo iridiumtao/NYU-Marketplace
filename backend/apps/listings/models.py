@@ -63,3 +63,31 @@ class ListingImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.listing.title}"
+
+
+class Watchlist(models.Model):
+    """Model to track listings saved by users"""
+    watchlist_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        related_name="watchlist_items",
+    )
+    listing = models.ForeignKey(
+        Listing,
+        on_delete=models.CASCADE,
+        related_name="watchlist_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "watchlist"
+        unique_together = [["user", "listing"]]
+        indexes = [
+            models.Index(fields=["user"]),
+            models.Index(fields=["listing"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.listing.title}"
