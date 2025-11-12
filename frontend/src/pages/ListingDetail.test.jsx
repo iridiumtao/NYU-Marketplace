@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import ListingDetail from './ListingDetail';
 import * as listingsApi from '@/api/listings';
+import { AuthProvider } from '../contexts/AuthContext';
 
 // Mock the API
 vi.mock('@/api/listings');
@@ -77,7 +78,9 @@ describe('ListingDetail - Share Functionality', () => {
   const renderListingDetail = () => {
     return render(
       <BrowserRouter>
-        <ListingDetail />
+        <AuthProvider>
+          <ListingDetail />
+        </AuthProvider>
       </BrowserRouter>
     );
   };
@@ -537,7 +540,9 @@ describe('ListingDetail - Core Functionality', () => {
   const renderListingDetail = () => {
     return render(
       <BrowserRouter>
-        <ListingDetail />
+        <AuthProvider>
+          <ListingDetail />
+        </AuthProvider>
       </BrowserRouter>
     );
   };
