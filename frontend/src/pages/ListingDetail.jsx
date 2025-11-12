@@ -10,9 +10,12 @@ import {
   FaTimes,
   FaArrowLeft,
   FaShareAlt,
+  FaHeart,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { getListing, getListings } from "@/api/listings";
+import { addToWatchlist, removeFromWatchlist } from "../api/watchlist";
+import { useAuth } from "../contexts/AuthContext";
 import SellerCard from "../components/SellerCard";
 import ContactSellerModal from "../components/ContactSellerModal";
 import "./ListingDetail.css";
@@ -20,6 +23,7 @@ import "./ListingDetail.css";
 export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +31,8 @@ export default function ListingDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [sellerStats, setSellerStats] = useState({
     activeListings: 0,
     soldItems: 0,
@@ -41,6 +47,7 @@ export default function ListingDetail() {
         if (mounted) {
           setListing(data);
           setCurrentImageIndex(0); // Reset image index when listing changes
+          setIsSaved(data.is_saved || false);
         }
       } catch (e) {
         console.error(e);
@@ -311,6 +318,31 @@ export default function ListingDetail() {
     }
   };
 
+  const handleToggleSave = async () => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+
+    if (!listing) return;
+
+    setSaving(true);
+    try {
+      if (isSaved) {
+        await removeFromWatchlist(listing.listing_id);
+        setIsSaved(false);
+      } else {
+        await addToWatchlist(listing.listing_id);
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error("Failed to toggle save:", err);
+      // Optionally show error message to user
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="listing-detail-page">
@@ -526,6 +558,46 @@ export default function ListingDetail() {
 
               {/* Action Buttons */}
               <div className="listing-detail-actions">
+                <button
+                  className="listing-detail-save-button"
+                  onClick={handleToggleSave}
+                  disabled={saving}
+                  title={isSaved ? "Remove from watchlist" : "Save to watchlist"}
+                  style={{
+                    background: isSaved ? "#dc2626" : "#fff",
+                    color: isSaved ? "#fff" : "#56018D",
+                    border: `2px solid ${isSaved ? "#dc2626" : "#56018D"}`,
+                    padding: "12px 20px",
+                    borderRadius: 8,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    cursor: saving ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    justifyContent: "center",
+                    transition: "all 0.2s",
+                    opacity: saving ? 0.6 : 1,
+                  }}
+                  onMouseOver={(e) => {
+                    if (!saving) {
+                      e.target.style.transform = "scale(1.05)";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    e.target.style.transform = "scale(1)";
+                  }}
+                >
+                  <FaHeart
+                    style={{
+                      fill: isSaved ? "#fff" : "transparent",
+                      stroke: isSaved ? "#fff" : "#56018D",
+                      strokeWidth: 2,
+                      transition: "all 0.2s",
+                    }}
+                  />
+                  {isSaved ? "Saved" : "Save"}
+                </button>
                 <button
                   className="listing-detail-contact-button"
                   onClick={() => setContactModalOpen(true)}

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createListing } from "../api/listings";
 import SEO from "../components/SEO";
+import { formatFileSize, validateImageFiles } from "../utils/fileUtils";
 
 // Match these with the Filters component options
 const CATEGORIES = ["Electronics", "Books", "Furniture", "Sports", "Clothing", "Other"];
@@ -28,10 +29,22 @@ const CreateListing = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
+    setError("");
+    
     if (files.length > 10) {
       setError("Maximum 10 images allowed");
       return;
     }
+    
+    // Validate file sizes
+    const validation = validateImageFiles(files);
+    if (!validation.valid) {
+      setError(validation.error);
+      e.target.value = ""; // Clear the input
+      setImages([]);
+      return;
+    }
+    
     setImages(files);
   };
 
@@ -67,6 +80,16 @@ const CreateListing = () => {
       return;
     }
 
+    // Validate images before submission
+    if (images.length > 0) {
+      const validation = validateImageFiles(images);
+      if (!validation.valid) {
+        setError(validation.error);
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       // Create FormData for multipart/form-data request
       const formData = new FormData();
@@ -87,12 +110,17 @@ const CreateListing = () => {
       // Redirect immediately to My Listings page
       navigate("/my-listings");
     } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to create listing";
-      setError(String(msg));
+      // Handle 413 errors specifically
+      if (err.response?.status === 413) {
+        setError("File(s) are too large. Please reduce image size and try again.");
+      } else {
+        const msg =
+          err.response?.data?.detail ||
+          err.response?.data?.message ||
+          err.message ||
+          "Failed to create listing";
+        setError(String(msg));
+      }
       console.error("Create listing error:", err);
       setLoading(false);
     }
@@ -350,8 +378,48 @@ const CreateListing = () => {
                 }}
               />
               <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-                You can upload up to 10 images. {images.length > 0 && `${images.length} selected`}
+                You can upload up to 10 images. Maximum 10MB per image, 100MB total.
+                {images.length > 0 && ` ${images.length} selected`}
               </p>
+              {images.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  {images.map((file, index) => {
+                    const fileSize = formatFileSize(file.size);
+                    const isLarge = file.size > 8 * 1024 * 1024; // > 8MB
+                    return (
+                      <div
+                        key={index}
+                        style={{
+                          fontSize: 12,
+                          color: isLarge ? "#dc2626" : "#6b7280",
+                          marginTop: 4,
+                          padding: "4px 8px",
+                          background: isLarge ? "#fef2f2" : "#f9fafb",
+                          borderRadius: 4,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span>{file.name}</span>
+                        <span style={{ fontWeight: 600 }}>{fileSize}</span>
+                      </div>
+                    );
+                  })}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#6b7280",
+                      marginTop: 8,
+                      paddingTop: 8,
+                      borderTop: "1px solid #e5e7eb",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Total: {formatFileSize(images.reduce((sum, file) => sum + file.size, 0))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

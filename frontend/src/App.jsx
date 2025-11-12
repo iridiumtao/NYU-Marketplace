@@ -49,6 +49,7 @@ export default function App() {
       <NavLink to="/browse" className="nav__link">Browse</NavLink>
       <NavLink to="/create-listing" className="nav__link">Create Listing</NavLink>
       <NavLink to="/my-listings" className="nav__link">My Listings</NavLink>
+      {user && <NavLink to="/watchlist" className="nav__link">Saved</NavLink>}
       {user ? (
         <ProfileDropdown />
       ) : (

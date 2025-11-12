@@ -17,6 +17,7 @@ import Chat from "../pages/Chat.jsx";
 
 import Profile from "../pages/Profile";
 import SellerProfile from "../pages/SellerProfile";
+import Watchlist from "../pages/Watchlist";
 
 export default function AppRouter() {
   return (
@@ -41,6 +42,7 @@ export default function AppRouter() {
               <Route path="/listing/:id/edit" element={<EditListing />} />
               <Route path="/create-listing" element={<CreateListing />} />
               <Route path="/my-listings" element={<MyListings />} />
+              <Route path="/watchlist" element={<Watchlist />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/chat/:conversationId" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
