@@ -1,7 +1,8 @@
-from pathlib import Path
-from datetime import timedelta  # JWT settings
-from dotenv import load_dotenv
 import os
+from datetime import timedelta  # JWT settings
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Conditionally import pymysql only if using MySQL
 # This allows SQLite-based settings (like settings_local) to work without pymysql
@@ -25,6 +26,8 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 INSTALLED_APPS = [
     "apps.users",
     "apps.listings",
+    "apps.chat",
+    "channels",
     "rest_framework",
     "corsheaders",
     "django.contrib.admin",
@@ -63,6 +66,11 @@ TEMPLATES = [
         },
     },
 ]
+
+ASGI_APPLICATION = "core.asgi.application"
+
+# Dev in-memory channel layer (use Redis in prod)
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 WSGI_APPLICATION = "core.wsgi.application"
 
@@ -157,3 +165,9 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 OTP_EMAIL_SENDER = os.environ.get(
     "OTP_EMAIL_SENDER", EMAIL_HOST_USER or "noreply@nyu-marketplace.com"
 )
+# Django upload size limits
+# Configure to allow uploads up to 120MB (10MB × 10 images + overhead)
+# This matches nginx client_max_body_size configuration
+DATA_UPLOAD_MAX_MEMORY_SIZE = 120 * 1024 * 1024  # 120MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 120 * 1024 * 1024  # 120MB
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000  # Allow for many images and form fields
