@@ -333,19 +333,21 @@ class ListingViewSet(
             cache_key = self._viewer_cache_key(request, obj.pk)  # obj.pk: listing_id
             if not cache.get(cache_key):
                 Listing.objects.filter(pk=obj.pk).update(view_count=F("view_count") + 1)
-                cache.set(cache_key, 1, timeout=300)  # Same visit won't be counted in 5 minutes
+                cache.set(
+                    cache_key, 1, timeout=300
+                )  # Same visit won't be counted in 5 minutes
         except Exception:
             pass
         return response
-    
+
     def _viewer_cache_key(self, request, listing_id):
         if request.user.is_authenticated:
             ident = f"user:{request.user.id}"
         else:
-            ip = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip() \
-                or request.META.get("REMOTE_ADDR", "")
+            ip = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[
+                0
+            ].strip() or request.META.get("REMOTE_ADDR", "")
             ua = (request.META.get("HTTP_USER_AGENT") or "")[:64]
             ident = f"ip:{ip}|ua:{ua}"
-            
-        return f"listing:view:{listing_id}:{ident}"
 
+        return f"listing:view:{listing_id}:{ident}"
