@@ -329,6 +329,13 @@ class ListingViewSet(
     def retrieve(self, request, *args, **kwargs):
         response = super().retrieve(request, *args, **kwargs)
         try:
+            should_track = (
+                request.headers.get("X-Track-View") == "1"
+                or request.query_params.get("track_view") in {"1", "true", "yes"}
+            )
+            if not should_track:
+                return response
+            
             obj = self.get_object()
             cache_key = self._viewer_cache_key(request, obj.pk)  # obj.pk: listing_id
             if not cache.get(cache_key):
