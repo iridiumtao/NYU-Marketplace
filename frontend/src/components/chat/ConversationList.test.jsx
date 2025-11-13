@@ -201,6 +201,116 @@ describe("ConversationList", () => {
       // First conversation item should be "Newer" (newest first)
       expect(items[3].textContent).toContain("Newer"); // Skip search and filter buttons
     });
+
+    it("sorts using created_at property", () => {
+      const conversations = [
+        {
+          id: "1",
+          listingTitle: "Older",
+          otherUser: { name: "Alice" },
+          lastMessage: { created_at: new Date("2024-01-14T10:00:00Z"), content: "Hello" },
+          unreadCount: 0,
+          type: "buying",
+        },
+        {
+          id: "2",
+          listingTitle: "Newer",
+          otherUser: { name: "Bob" },
+          lastMessage: { created_at: new Date("2024-01-15T10:00:00Z"), content: "Hi" },
+          unreadCount: 0,
+          type: "selling",
+        },
+      ];
+      render(
+        <ConversationList
+          conversations={conversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      const items = screen.getAllByRole("button");
+      expect(items[3].textContent).toContain("Newer");
+    });
+
+    it("sorts using last_message_at property", () => {
+      const conversations = [
+        {
+          id: "1",
+          listingTitle: "Older",
+          otherUser: { name: "Alice" },
+          last_message_at: new Date("2024-01-14T10:00:00Z"),
+          unreadCount: 0,
+          type: "buying",
+        },
+        {
+          id: "2",
+          listingTitle: "Newer",
+          otherUser: { name: "Bob" },
+          last_message_at: new Date("2024-01-15T10:00:00Z"),
+          unreadCount: 0,
+          type: "selling",
+        },
+      ];
+      render(
+        <ConversationList
+          conversations={conversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      const items = screen.getAllByRole("button");
+      expect(items[3].textContent).toContain("Newer");
+    });
+
+    it("handles conversations with no timestamp (sorts to end)", () => {
+      const conversations = [
+        {
+          id: "1",
+          listingTitle: "No timestamp",
+          otherUser: { name: "Alice" },
+          unreadCount: 0,
+          type: "buying",
+        },
+        {
+          id: "2",
+          listingTitle: "Has timestamp",
+          otherUser: { name: "Bob" },
+          lastMessage: { timestamp: new Date("2024-01-15T10:00:00Z"), content: "Hi" },
+          unreadCount: 0,
+          type: "selling",
+        },
+      ];
+      render(
+        <ConversationList
+          conversations={conversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      const items = screen.getAllByRole("button");
+      expect(items[3].textContent).toContain("Has timestamp");
+    });
+
+    it("handles timestamp as string", () => {
+      const conversations = [
+        {
+          id: "1",
+          listingTitle: "String timestamp",
+          otherUser: { name: "Alice" },
+          lastMessage: { timestamp: "2024-01-15T10:00:00Z", content: "Hello" },
+          unreadCount: 0,
+          type: "buying",
+        },
+      ];
+      render(
+        <ConversationList
+          conversations={conversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      expect(screen.getByText("String timestamp")).toBeInTheDocument();
+    });
   });
 
   describe("Active conversation", () => {
@@ -214,6 +324,110 @@ describe("ConversationList", () => {
       );
       const activeItem = container.querySelector(".conversation-item--active");
       expect(activeItem).toBeInTheDocument();
+    });
+  });
+
+  describe("Conversation selection", () => {
+    it("calls onConversationSelect when conversation is clicked", async () => {
+      const user = userEvent.setup();
+      render(
+        <ConversationList
+          conversations={mockConversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      const conversationButtons = screen.getAllByRole("button");
+      // Find the conversation button (skip search and filter buttons)
+      const conversationButton = conversationButtons.find(btn => 
+        btn.textContent.includes("Laptop")
+      );
+      if (conversationButton) {
+        await user.click(conversationButton);
+        expect(mockOnSelect).toHaveBeenCalledWith("1");
+      }
+    });
+  });
+
+  describe("Search and filter combinations", () => {
+    it("filters by type and search query together", async () => {
+      const user = userEvent.setup();
+      const conversations = [
+        {
+          id: "1",
+          listingTitle: "Buying Laptop",
+          otherUser: { name: "Alice" },
+          lastMessage: { timestamp: new Date(), content: "Hello" },
+          unreadCount: 0,
+          type: "buying",
+        },
+        {
+          id: "2",
+          listingTitle: "Buying Phone",
+          otherUser: { name: "Bob" },
+          lastMessage: { timestamp: new Date(), content: "Hi" },
+          unreadCount: 0,
+          type: "buying",
+        },
+        {
+          id: "3",
+          listingTitle: "Selling Laptop",
+          otherUser: { name: "Charlie" },
+          lastMessage: { timestamp: new Date(), content: "Hey" },
+          unreadCount: 0,
+          type: "selling",
+        },
+      ];
+      render(
+        <ConversationList
+          conversations={conversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      
+      // Filter by buying
+      const buyingTab = screen.getByText("Buying");
+      await user.click(buyingTab);
+      
+      // Search for "Laptop"
+      const searchInput = screen.getByPlaceholderText("Search conversations...");
+      await user.type(searchInput, "Laptop");
+      
+      // Should only show "Buying Laptop"
+      expect(screen.getByText("Buying Laptop")).toBeInTheDocument();
+      expect(screen.queryByText("Buying Phone")).not.toBeInTheDocument();
+      expect(screen.queryByText("Selling Laptop")).not.toBeInTheDocument();
+    });
+
+    it("shows empty state when search and filter yield no results", async () => {
+      const user = userEvent.setup();
+      render(
+        <ConversationList
+          conversations={mockConversations}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      
+      // Search for something that doesn't exist
+      const searchInput = screen.getByPlaceholderText("Search conversations...");
+      await user.type(searchInput, "NonExistent");
+      
+      expect(screen.getByText("No conversations yet")).toBeInTheDocument();
+    });
+  });
+
+  describe("Empty state", () => {
+    it("shows empty state subtext", () => {
+      render(
+        <ConversationList
+          conversations={[]}
+          activeConversationId={null}
+          onConversationSelect={mockOnSelect}
+        />
+      );
+      expect(screen.getByText(/Start chatting with sellers or buyers/)).toBeInTheDocument();
     });
   });
 });

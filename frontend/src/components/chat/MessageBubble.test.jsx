@@ -175,6 +175,100 @@ describe("MessageBubble", () => {
       const bubble = document.querySelector('.message-bubble__text');
       expect(bubble).toBeInTheDocument();
     });
+
+    it("handles otherUser with no initials and no name", () => {
+      const { container } = render(
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          otherUser={{ id: "2" }}
+          showAvatar={true}
+        />
+      );
+      // Should show default "U" when no initials or name
+      expect(container.querySelector(".message-bubble__avatar-initials")).toHaveTextContent("U");
+    });
+
+    it("handles otherUser with name but no initials", () => {
+      const { container } = render(
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          otherUser={{ id: "2", name: "John" }}
+          showAvatar={true}
+        />
+      );
+      // Should show first letter of name when no initials
+      expect(container.querySelector(".message-bubble__avatar-initials")).toHaveTextContent("J");
+    });
+
+    it("handles otherUser with empty name", () => {
+      const { container } = render(
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          otherUser={{ id: "2", name: "" }}
+          showAvatar={true}
+        />
+      );
+      // Should show default "U" when name is empty
+      expect(container.querySelector(".message-bubble__avatar-initials")).toHaveTextContent("U");
+    });
+
+    it("handles showAvatar true but otherUser is null", () => {
+      const { container } = render(
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          otherUser={null}
+          showAvatar={true}
+        />
+      );
+      // When otherUser is null, avatar won't render (showAvatar && otherUser is false)
+      // and spacer won't render (!showAvatar is false)
+      // So neither should be present
+      expect(container.querySelector(".message-bubble__avatar")).not.toBeInTheDocument();
+      expect(container.querySelector(".message-bubble__avatar-spacer")).not.toBeInTheDocument();
+    });
+
+    it("handles showAvatar true but otherUser is undefined", () => {
+      const { container } = render(
+        <MessageBubble
+          message={mockMessage}
+          isOwnMessage={false}
+          showAvatar={true}
+        />
+      );
+      // When otherUser is undefined, avatar won't render
+      expect(container.querySelector(".message-bubble__avatar")).not.toBeInTheDocument();
+      expect(container.querySelector(".message-bubble__avatar-spacer")).not.toBeInTheDocument();
+    });
+
+    it("handles message with Date object as timestamp", () => {
+      const messageWithDate = {
+        ...mockMessage,
+        timestamp: new Date("2024-01-15T10:30:00Z"),
+      };
+      render(
+        <MessageBubble message={messageWithDate} isOwnMessage={true} />
+      );
+      // Should format Date object correctly
+      const timeElement = screen.getByText(/\d{1,2}:\d{2}/);
+      expect(timeElement).toBeInTheDocument();
+    });
+
+    it("handles message with string timestamp", () => {
+      const messageWithString = {
+        ...mockMessage,
+        timestamp: "2024-01-15T10:30:00Z",
+      };
+      render(
+        <MessageBubble message={messageWithString} isOwnMessage={true} />
+      );
+      // Should convert string to Date and format correctly
+      const timeElement = screen.getByText(/\d{1,2}:\d{2}/);
+      expect(timeElement).toBeInTheDocument();
+    });
   });
 });
 

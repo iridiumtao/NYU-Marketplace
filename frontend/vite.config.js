@@ -42,7 +42,7 @@ export default defineConfig({
         'src/hooks/**',
         'src/pages/Chat.jsx'
       ],
-      // Enforce 85% coverage threshold - CI will fail if not met
+      // Enforce coverage thresholds - 85% required for all metrics
       thresholds: {
         lines: 85,
         functions: 85,

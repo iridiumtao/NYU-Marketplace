@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import ConversationItem from "./ConversationItem";
 
 describe("ConversationItem", () => {
@@ -133,6 +133,20 @@ describe("ConversationItem", () => {
   });
 
   describe("Timestamp formatting", () => {
+    it("formats 'Just now' for very recent timestamps", () => {
+      const justNowConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: new Date(Date.now() - 30 * 1000), // 30 seconds ago
+        },
+      };
+      render(
+        <ConversationItem conversation={justNowConv} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("Just now")).toBeInTheDocument();
+    });
+
     it("formats recent timestamps correctly", () => {
       const recentConv = {
         ...mockConversation,
@@ -145,6 +159,48 @@ describe("ConversationItem", () => {
         <ConversationItem conversation={recentConv} onClick={mockOnClick} />
       );
       expect(screen.getByText("5m ago")).toBeInTheDocument();
+    });
+
+    it("formats hours ago timestamps correctly", () => {
+      const hoursAgoConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: new Date(Date.now() - 3 * 3600000), // 3 hours ago
+        },
+      };
+      render(
+        <ConversationItem conversation={hoursAgoConv} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("3h ago")).toBeInTheDocument();
+    });
+
+    it("formats 'Yesterday' correctly", () => {
+      const yesterdayConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: new Date(Date.now() - 86400000), // 1 day ago
+        },
+      };
+      render(
+        <ConversationItem conversation={yesterdayConv} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("Yesterday")).toBeInTheDocument();
+    });
+
+    it("formats days ago timestamps correctly", () => {
+      const daysAgoConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: new Date(Date.now() - 3 * 86400000), // 3 days ago
+        },
+      };
+      render(
+        <ConversationItem conversation={daysAgoConv} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("3d ago")).toBeInTheDocument();
     });
 
     it("formats old timestamps correctly", () => {
@@ -165,6 +221,157 @@ describe("ConversationItem", () => {
       const timeElement = timeElements.find(el => el.className.includes('conversation-item__time'));
       expect(timeElement).toBeInTheDocument();
     });
+
+    it("handles timestamp as string", () => {
+      const stringTimestampConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: "2024-01-15T10:30:00Z",
+        },
+      };
+      render(
+        <ConversationItem conversation={stringTimestampConv} onClick={mockOnClick} />
+      );
+      // Should still render without errors
+      expect(screen.getByText("Test Laptop")).toBeInTheDocument();
+    });
+
+    it("handles missing timestamp gracefully", () => {
+      const noTimestampConv = {
+        ...mockConversation,
+        lastMessage: {
+          ...mockConversation.lastMessage,
+          timestamp: null,
+        },
+      };
+      render(
+        <ConversationItem conversation={noTimestampConv} onClick={mockOnClick} />
+      );
+      // Should render without timestamp
+      expect(screen.getByText("Test Laptop")).toBeInTheDocument();
+    });
+  });
+
+  describe("Message format variations", () => {
+    it("handles lastMessage with 'text' property", () => {
+      const convWithText = {
+        ...mockConversation,
+        lastMessage: {
+          text: "Message with text property",
+          timestamp: new Date(),
+          senderId: "2",
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithText} onClick={mockOnClick} />
+      );
+      expect(screen.getByText(/Message with text property/)).toBeInTheDocument();
+    });
+
+    it("handles last_message property instead of lastMessage", () => {
+      const convWithLastMessage = {
+        ...mockConversation,
+        last_message: {
+          content: "Using last_message property",
+          timestamp: new Date(),
+          senderId: "2",
+        },
+        lastMessage: undefined,
+      };
+      render(
+        <ConversationItem conversation={convWithLastMessage} onClick={mockOnClick} />
+      );
+      expect(screen.getByText(/Using last_message property/)).toBeInTheDocument();
+    });
+
+    it("handles sender property instead of senderId", () => {
+      const convWithSender = {
+        ...mockConversation,
+        lastMessage: {
+          content: "Message from sender",
+          timestamp: new Date(),
+          sender: "1", // Using sender instead of senderId
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithSender} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("You:")).toBeInTheDocument();
+    });
+
+    it("handles sender as string comparison", () => {
+      const convWithStringSender = {
+        ...mockConversation,
+        lastMessage: {
+          content: "Message with string sender",
+          timestamp: new Date(),
+          sender: "1", // String sender matching currentUserId
+        },
+        currentUserId: "1",
+      };
+      render(
+        <ConversationItem conversation={convWithStringSender} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("You:")).toBeInTheDocument();
+    });
+  });
+
+  describe("Listing image variations", () => {
+    it("handles listing.primary_image.url format", () => {
+      const convWithNestedImage = {
+        ...mockConversation,
+        listingImage: null,
+        listing: {
+          primary_image: {
+            url: "https://example.com/nested-image.jpg",
+          },
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithNestedImage} onClick={mockOnClick} />
+      );
+      const img = screen.getByAltText("Test Laptop");
+      expect(img).toHaveAttribute("src", "https://example.com/nested-image.jpg");
+    });
+
+    it("handles listing.images[0].image_url format", () => {
+      const convWithImagesArray = {
+        ...mockConversation,
+        listingImage: null,
+        listing: {
+          images: [
+            {
+              image_url: "https://example.com/array-image.jpg",
+            },
+          ],
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithImagesArray} onClick={mockOnClick} />
+      );
+      const img = screen.getByAltText("Test Laptop");
+      expect(img).toHaveAttribute("src", "https://example.com/array-image.jpg");
+    });
+
+    it("handles listing.images[0].url format", () => {
+      const convWithUrlArray = {
+        ...mockConversation,
+        listingImage: null,
+        listing: {
+          images: [
+            {
+              url: "https://example.com/url-image.jpg",
+            },
+          ],
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithUrlArray} onClick={mockOnClick} />
+      );
+      const img = screen.getByAltText("Test Laptop");
+      expect(img).toHaveAttribute("src", "https://example.com/url-image.jpg");
+    });
   });
 
   describe("Edge cases", () => {
@@ -179,6 +386,20 @@ describe("ConversationItem", () => {
       const convWithoutMessage = { ...mockConversation, lastMessage: null };
       render(
         <ConversationItem conversation={convWithoutMessage} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("Start the conversation…")).toBeInTheDocument();
+    });
+
+    it("handles missing last message content", () => {
+      const convWithoutContent = {
+        ...mockConversation,
+        lastMessage: {
+          timestamp: new Date(),
+          senderId: "2",
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithoutContent} onClick={mockOnClick} />
       );
       expect(screen.getByText("Start the conversation…")).toBeInTheDocument();
     });
@@ -198,5 +419,70 @@ describe("ConversationItem", () => {
       );
       expect(screen.getByText("Untitled Listing")).toBeInTheDocument();
     });
+
+    it("handles missing otherUser name", () => {
+      const convWithoutUserName = {
+        ...mockConversation,
+        otherUser: {
+          id: "2",
+          isOnline: false,
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithoutUserName} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("User")).toBeInTheDocument();
+    });
+
+    it("handles missing otherUser", () => {
+      const convWithoutOtherUser = {
+        ...mockConversation,
+        otherUser: null,
+      };
+      render(
+        <ConversationItem conversation={convWithoutOtherUser} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("User")).toBeInTheDocument();
+    });
+
+    it("handles placeholder with no listing title", () => {
+      const convNoTitle = {
+        ...mockConversation,
+        listingTitle: null,
+        listingImage: null,
+      };
+      render(
+        <ConversationItem conversation={convNoTitle} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("?")).toBeInTheDocument();
+    });
+
+    it("handles last_message_at property", () => {
+      const convWithLastMessageAt = {
+        ...mockConversation,
+        lastMessage: null,
+        last_message_at: new Date(Date.now() - 5 * 60000),
+      };
+      render(
+        <ConversationItem conversation={convWithLastMessageAt} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("5m ago")).toBeInTheDocument();
+    });
+
+    it("handles created_at property in lastMessage", () => {
+      const convWithCreatedAt = {
+        ...mockConversation,
+        lastMessage: {
+          content: "Message",
+          created_at: new Date(Date.now() - 2 * 3600000),
+          senderId: "2",
+        },
+      };
+      render(
+        <ConversationItem conversation={convWithCreatedAt} onClick={mockOnClick} />
+      );
+      expect(screen.getByText("2h ago")).toBeInTheDocument();
+    });
   });
 });
+

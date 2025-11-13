@@ -1,8 +1,9 @@
 // src/pages/Chat.test.jsx
 import React from "react";
-import { render, screen, act, fireEvent, within, waitFor } from "@testing-library/react";
+import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { ChatProvider } from "../contexts/ChatContext";
 
 // Mock useAuth
 vi.mock("../contexts/AuthContext", () => ({
@@ -154,7 +155,9 @@ describe("Chat page", () => {
     chatApi.listConversations.mockResolvedValueOnce([]);
     render(
       <MemoryRouter>
-        <Chat />
+        <ChatProvider>
+          <Chat />
+        </ChatProvider>
       </MemoryRouter>
     );
 
@@ -182,7 +185,9 @@ describe("Chat page", () => {
 
     render(
       <MemoryRouter>
-        <Chat />
+        <ChatProvider>
+          <Chat />
+        </ChatProvider>
       </MemoryRouter>
     );
 
@@ -212,7 +217,9 @@ it("renders inbound WS message and sends read when it's from other user", async 
 
     render(
       <MemoryRouter>
-        <Chat />
+        <ChatProvider>
+          <Chat />
+        </ChatProvider>
       </MemoryRouter>
     );
     
@@ -262,7 +269,9 @@ it("renders inbound WS message and sends read when it's from other user", async 
 
     render(
       <MemoryRouter>
-        <Chat />
+        <ChatProvider>
+          <Chat />
+        </ChatProvider>
       </MemoryRouter>
     );
     
@@ -320,7 +329,9 @@ it("renders inbound WS message and sends read when it's from other user", async 
 
     render(
       <MemoryRouter>
-        <Chat />
+        <ChatProvider>
+          <Chat />
+        </ChatProvider>
       </MemoryRouter>
     );
 

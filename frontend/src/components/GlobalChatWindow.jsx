@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
   listConversations,
   getMessages,
@@ -12,41 +12,29 @@ import { getListing, getListings } from "../api/listings";
 import { useAuth } from "../contexts/AuthContext";
 import { useChat } from "../contexts/ChatContext";
 import useChatSocket from "../hooks/useChatSocket";
-import { ChatModal } from "../components/chat";
-import Home from "./Home";
-import BrowseListings from "./BrowseListings";
-import ListingDetail from "./ListingDetail";
-import MyListings from "./MyListings";
-import Watchlist from "./Watchlist";
-import CreateListing from "./CreateListing";
+import { ChatModal } from "./chat";
 
-export default function Chat() {
-  const { conversationId } = useParams();
-  const navigate = useNavigate();
+/**
+ * GlobalChatWindow - Renders the chat window globally across all routes
+ * This component handles the windowed chat view that persists when navigating
+ */
+export default function GlobalChatWindow() {
   const { user: currentUser } = useAuth();
-  const { openChat } = useChat();
+  const { isChatOpen, closeChat } = useChat();
+  const { conversationId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [selfId, setSelfId] = useState("");
   const [convs, setConvs] = useState([]);
-  const [messages, setMessages] = useState({}); // conversationId -> messages array
-  const [nextBefore, setNextBefore] = useState({}); // conversationId -> next_before cursor
-  const [isOpen, setIsOpen] = useState(true);
-  const [previousPath, setPreviousPath] = useState(null);
-  const [isFullPageMode, setIsFullPageMode] = useState(true); // Start in full-page mode when on /chat route
-  const [chatSidebarWidth, setChatSidebarWidth] = useState(400); // Track chat sidebar width (always 400px in windowed mode)
-  const [isMobile, setIsMobile] = useState(false); // Track mobile state for padding calculation
-  const loadedConversationsRef = useRef(new Set()); // Track which conversations have been loaded
+  const [messages, setMessages] = useState({});
+  const [nextBefore, setNextBefore] = useState({});
+  const [isFullPageMode, setIsFullPageMode] = useState(false);
+  const [chatSidebarWidth, setChatSidebarWidth] = useState(400);
+  const [isMobile, setIsMobile] = useState(false);
+  const loadedConversationsRef = useRef(new Set());
+  const lastReadMessageRef = useRef({}); // Track last read message ID per conversation
 
-  // Store previous path when component mounts
-  useEffect(() => {
-    // Read the previous path that was stored by App.jsx
-    // App.jsx stores it whenever we're not on /chat, so it should be available
-    const prevPath = sessionStorage.getItem('previousPath') || '/';
-    setPreviousPath(prevPath);
-    // Open chat when navigating to /chat route
-    openChat();
-  }, [openChat]); // Only run on mount to read the stored path
-
-  // Track mobile state for padding calculation
+  // Track mobile state
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -66,9 +54,9 @@ export default function Chat() {
     }
   }, []);
 
-  // Load conversations
+  // Load conversations when chat is open
   useEffect(() => {
-    if (!selfId) return;
+    if (!selfId || !isChatOpen) return;
     
     const loadConversations = async () => {
       try {
@@ -164,9 +152,7 @@ export default function Chat() {
               if (storedListingId) {
                 // We have a stored listing ID, fetch it
                 try {
-                  console.log(`Fetching listing ${storedListingId} for conversation ${conv.id}`);
                   const listingDetail = await getListing(storedListingId);
-                  console.log(`Listing detail for ${storedListingId}:`, listingDetail);
                   
                   if (listingDetail) {
                     listingInfo = {
@@ -184,17 +170,80 @@ export default function Chat() {
                     } else if (sellerNetid) {
                       sellerName = sellerNetid;
                     }
-                    console.log(`Set listing title: ${listingInfo.title}, seller name: ${sellerName}, user_id: ${listingInfo.user_id}`);
-                  } else {
-                    console.error(`Listing detail is null for ${storedListingId}`);
                   }
                 } catch (e) {
                   // Listing might have been deleted or user doesn't have access
                   // This is not critical - conversation can still work without listing info
                   console.warn(`Could not fetch listing ${storedListingId} for conversation ${conv.id}:`, e?.message || e);
                 }
-              } else {
-                console.log(`No stored listing ID for conversation ${conv.id}`);
+              }
+              
+              // If we still don't have listing info, try to find it by matching participants with listing sellers
+              if (!listingInfo && allListings.length > 0) {
+                // Try to find a listing where one of the participants is the seller
+                // First check if current user is the seller
+                for (const listing of allListings.slice(0, 50)) {
+                  try {
+                    const listingDetail = await getListing(listing.listing_id || listing.id);
+                    // Check if the current user is the seller
+                    if (listingDetail.user_id && String(listingDetail.user_id) === String(selfId)) {
+                      listingInfo = {
+                        id: listingDetail.listing_id,
+                        title: listingDetail.title || "Untitled Listing",
+                        price: listingDetail.price || 0,
+                        image: listingDetail.images?.[0]?.image_url || listingDetail.primary_image?.url || null,
+                        user_id: listingDetail.user_id,
+                      };
+                      sellerEmail = listingDetail.user_email;
+                      sellerNetid = listingDetail.user_netid;
+                      if (sellerEmail) {
+                        sellerName = sellerEmail;
+                      } else if (sellerNetid) {
+                        sellerName = sellerNetid;
+                      }
+                      // Store in localStorage for future use
+                      const conversationListings = JSON.parse(localStorage.getItem('conversationListings') || '{}');
+                      conversationListings[conv.id] = listingDetail.listing_id;
+                      localStorage.setItem('conversationListings', JSON.stringify(conversationListings));
+                      break;
+                    }
+                  } catch {
+                    continue;
+                  }
+                }
+                
+                // If still not found, check if the other participant is the seller
+                if (!listingInfo) {
+                  for (const listing of allListings.slice(0, 50)) {
+                    try {
+                      const listingDetail = await getListing(listing.listing_id || listing.id);
+                      // Check if the other participant is the seller
+                      if (listingDetail.user_id && String(listingDetail.user_id) === String(finalOtherUserId)) {
+                        listingInfo = {
+                          id: listingDetail.listing_id,
+                          title: listingDetail.title || "Untitled Listing",
+                          price: listingDetail.price || 0,
+                          image: listingDetail.images?.[0]?.image_url || listingDetail.primary_image?.url || null,
+                          user_id: listingDetail.user_id,
+                        };
+                        sellerEmail = listingDetail.user_email;
+                        sellerNetid = listingDetail.user_netid;
+                        if (sellerEmail) {
+                          sellerName = sellerEmail;
+                        } else if (sellerNetid) {
+                          sellerName = sellerNetid;
+                        }
+                        // Store in localStorage for future use
+                        const conversationListings = JSON.parse(localStorage.getItem('conversationListings') || '{}');
+                        conversationListings[conv.id] = listingDetail.listing_id;
+                        localStorage.setItem('conversationListings', JSON.stringify(conversationListings));
+                        break;
+                      }
+                    } catch {
+                      continue;
+                    }
+                  }
+                }
               }
             } catch (e) {
               // This is not critical - conversation can work without listing info
@@ -208,35 +257,32 @@ export default function Chat() {
             if (listingInfo && listingInfo.user_id) {
               // Compare listing owner's user_id with current user's ID
               isCurrentUserSeller = String(listingInfo.user_id) === String(selfId);
-              console.log(`Seller check for conversation ${conv.id}:`, {
-                listingUserId: listingInfo.user_id,
-                selfId: selfId,
-                isCurrentUserSeller: isCurrentUserSeller,
-              });
             } else {
               // No listing info - we can't determine, default to buying
               isCurrentUserSeller = false;
-              console.log(`No listing info for conversation ${conv.id}, defaulting to buying`);
             }
             
-            // Calculate unread count - only show if last message was NOT sent by current user
+            // Calculate unread count - only count messages from the other user
+            // The backend's unread_count includes all messages since last read, including ones sent by current user
+            // We need to filter to only count messages from the other participant
+            let unreadCount = 0;
             const lastMessageSenderId = conv.last_message?.sender || "";
             const isLastMessageFromMe = String(lastMessageSenderId) === String(selfId);
-            const unreadCount = isLastMessageFromMe ? 0 : (conv.unread_count || 0);
+            
+            // Only show unread count if last message was from the other user
+            // The backend's unread_count includes messages from current user, so we'll use it as a starting point
+            // but it will be recalculated when messages are loaded to only count messages from the other user
+            if (!isLastMessageFromMe && conv.unread_count) {
+              // Use backend's count initially, but subtract 1 as it's always one more than actual
+              unreadCount = Math.max(0, conv.unread_count - 1);
+            } else {
+              unreadCount = 0;
+            }
             
             // Determine conversation type (buying vs selling)
             // If current user is the seller (listing owner), it's "selling"
             // Otherwise, it's "buying"
             const type = isCurrentUserSeller ? "selling" : "buying";
-            
-            console.log(`Conversation ${conv.id} type determination:`, {
-              selfId,
-              listingUserId: listingInfo?.user_id,
-              isCurrentUserSeller,
-              type,
-              listingTitle: listingInfo?.title,
-              hasListingInfo: !!listingInfo,
-            });
             
             // Display name logic:
             // - If current user is seller: show buyer's name (other participant - we need to get this)
@@ -253,30 +299,24 @@ export default function Chat() {
               if (isCurrentUserSeller) {
                 // Current user is seller, show buyer's name (other participant)
                 // Try to get buyer's info from listings
-                // The buyer is the other participant (otherUserId)
-                // We need to find a listing or way to get their name
-                // For now, try to find their info from any available source
                 displayName = `User ${String(finalOtherUserId)}`; // Fallback
                 
                 // Try to get buyer info by searching listings they might own
-                // This is not perfect but better than "User X"
                 for (const listing of allListings.slice(0, 50)) {
                   try {
                     const listingDetail = await getListing(listing.listing_id || listing.id);
-                    // Check if this listing's owner is the other participant
-                    // We can't directly match, but we can try
                     const listingOwnerEmail = listingDetail.user_email?.toLowerCase();
                     
                     // If this listing's owner is NOT the seller, it might be the buyer
                     if (listingOwnerEmail && listingOwnerEmail !== sellerEmail?.toLowerCase()) {
-                    // This could be the buyer's listing
-                    otherUserEmail = listingDetail.user_email;
-                    otherUserNetid = listingDetail.user_netid;
-                    if (otherUserEmail) {
-                      displayName = otherUserEmail; // Show full email
-                    } else if (otherUserNetid) {
-                      displayName = otherUserNetid;
-                    }
+                      // This could be the buyer's listing
+                      otherUserEmail = listingDetail.user_email;
+                      otherUserNetid = listingDetail.user_netid;
+                      if (otherUserEmail) {
+                        displayName = otherUserEmail; // Show full email
+                      } else if (otherUserNetid) {
+                        displayName = otherUserNetid;
+                      }
                       break;
                     }
                   } catch {
@@ -297,7 +337,6 @@ export default function Chat() {
             
             // If we still don't have a proper name, try to get user info from the pre-fetched unique emails
             // Use otherUserId to deterministically assign an email to each conversation
-            // This ensures each conversation gets a different user's email based on the participant ID
             if ((!displayName || displayName.startsWith("User ")) && !otherUserEmail) {
               // Filter out seller email and current user email
               const availableEmails = uniqueUserEmails.filter((u) => {
@@ -308,12 +347,9 @@ export default function Chat() {
               });
               
               // Assign an email to this conversation based on otherUserId
-              // This creates a deterministic mapping: same otherUserId -> same email
-              // Different otherUserIds will get different emails (if available)
               if (availableEmails.length > 0) {
-              // Use finalOtherUserId to deterministically pick an email
-              // Convert finalOtherUserId to a number and use modulo to pick from available emails
-              const userIdNum = parseInt(String(finalOtherUserId).replace(/\D/g, '')) || 0;
+                // Use finalOtherUserId to deterministically pick an email
+                const userIdNum = parseInt(String(finalOtherUserId).replace(/\D/g, '')) || 0;
                 const selectedUser = availableEmails[userIdNum % availableEmails.length];
                 otherUserEmail = selectedUser.email;
                 otherUserNetid = selectedUser.netid;
@@ -417,7 +453,7 @@ export default function Chat() {
                 name: fallbackName,
                 email: fallbackEmail,
                 netid: fallbackNetid,
-                initials: fallbackName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || fallbackName.charAt(0).toUpperCase() || "U",
+                initials: (fallbackName || "U").charAt(0).toUpperCase() || "U",
                 isOnline: false,
                 memberSince: new Date().toISOString(),
               },
@@ -435,7 +471,6 @@ export default function Chat() {
         });
         
         const transformed = await Promise.all(transformedPromises);
-        console.log("Transformed conversations:", transformed);
         setConvs(transformed);
       } catch (e) {
         console.error("Failed to load conversations:", e);
@@ -443,16 +478,11 @@ export default function Chat() {
     };
     
     loadConversations();
-    
-    // Reload conversations when conversationId changes (e.g., after sending a message)
-    if (conversationId) {
-      loadConversations();
-    }
-  }, [selfId, conversationId, currentUser?.email]);
+  }, [selfId, isChatOpen, currentUser]);
 
-  // Load messages for each conversation and mark as read when viewing
+  // Load messages for each conversation
   useEffect(() => {
-    if (convs.length === 0 || !selfId) return;
+    if (convs.length === 0 || !selfId || !isChatOpen) return;
     
     const loadMessages = async (convId, before = null) => {
       try {
@@ -480,13 +510,22 @@ export default function Chat() {
             // Avoid duplicates
             const existingIds = new Set(existing.map(m => m.id));
             const newMessages = transformed.filter(m => !existingIds.has(m.id));
+            const updatedMessages = [...newMessages, ...existing];
+            
+            // Don't recalculate unread count when loading older messages
+            // Unread count should only be updated when marking as read or when initial load happens
+            
             return {
               ...prev,
-              [convId]: [...newMessages, ...existing],
+              [convId]: updatedMessages,
             };
           } else {
             // Initial load - replace and mark as loaded
             loadedConversationsRef.current.add(convId);
+            
+            // Don't recalculate unread count here - it will be recalculated when marking as read
+            // The backend's unread_count is used initially, and we'll update it properly when the user clicks on the conversation
+            
             return {
               ...prev,
               [convId]: transformed,
@@ -499,135 +538,104 @@ export default function Chat() {
           ...prev,
           [convId]: next_before || null,
         }));
-        
-        // Mark as read if this is the active conversation and messages were loaded for the first time
-        // Only mark as read if this is the first load (before is null) and there are unread messages
-        if (!before && convId && selfId && transformed.length > 0) {
-          // Determine if this is the active conversation
-          const activeConvId = conversationId || (convs.length > 0 ? convs[0].id : null);
-          if (convId === activeConvId) {
-            // Find the most recent message that was NOT sent by current user
-            const unreadMessages = transformed.filter(
-              (msg) => String(msg.senderId) !== String(selfId)
-            );
-            
-            if (unreadMessages.length > 0) {
-              // Messages from API are sorted newest first, so first one is most recent
-              const mostRecentUnread = unreadMessages[0];
-              markRead(convId, mostRecentUnread.id).catch(() => {});
-              // Update unread count in conversations list
-              setConvs((prev) =>
-                prev.map((c) =>
-                  c.id === convId
-                    ? { ...c, unreadCount: 0 }
-                    : c
-                )
-              );
-            }
-          }
-        }
       } catch (e) {
-        console.error(`Failed to load messages for ${convId}:`, e);
+        console.error(`Failed to load messages for conversation ${convId}:`, e);
       }
     };
-
-    // Load messages for all conversations, prioritizing the active one
-    const activeConvId = conversationId || (convs.length > 0 ? convs[0].id : null);
     
-    // Always reload messages for the active conversation (in case new messages were sent)
-    if (activeConvId) {
-      // Reset loaded flag for active conversation to allow reloading
-      loadedConversationsRef.current.delete(activeConvId);
-      loadMessages(activeConvId, null); // Load initial messages
-    }
+    // Load messages for all conversations that haven't been loaded yet
+    const conversationsToLoad = convs.filter(
+      (conv) => !loadedConversationsRef.current.has(conv.id)
+    );
     
-    // Then load other conversations (only if not already loaded)
-    convs.forEach((conv) => {
-      if (conv.id !== activeConvId && !loadedConversationsRef.current.has(conv.id)) {
-        loadedConversationsRef.current.add(conv.id);
-        loadMessages(conv.id);
-      }
+    conversationsToLoad.forEach((conv) => {
+      loadMessages(conv.id);
     });
-  }, [convs, conversationId, selfId]);
+  }, [convs, selfId, isChatOpen]);
 
-  // WebSocket updates
-  const activeConversationId = conversationId || (convs.length > 0 ? convs[0].id : null);
-  const { sendText, sendRead } = useChatSocket({
-    conversationId: activeConversationId,
-    onMessage: (msg) => {
-      // Get conversation ID from message or use active conversation
-      const msgConversationId = msg.conversation || activeConversationId;
-      if (!msgConversationId) {
-        console.warn("Received WebSocket message without conversation ID:", msg);
-        return;
-      }
-
-      const transformed = {
-        id: msg.id,
-        conversationId: msgConversationId,
-        senderId: String(msg.sender || msg.senderId),
-        content: msg.text,
-        text: msg.text,
-        timestamp: msg.created_at,
-        created_at: msg.created_at,
-        read: false,
-      };
-
-      setMessages((prev) => {
-        const existing = prev[msgConversationId] || [];
-        // Avoid duplicates
-        if (existing.find((m) => m.id === transformed.id)) {
-          return prev;
-        }
-        return {
-          ...prev,
-          [msgConversationId]: [transformed, ...existing],
+  // WebSocket connection for real-time messages
+  // Note: WebSocket only connects to one conversation at a time (conversationId from URL)
+  // For other conversations, messages will be received when that conversation is active
+  useChatSocket({
+    conversationId: conversationId || null,
+    onMessage: (message) => {
+      const msgConversationId = message.conversation || conversationId;
+      if (msgConversationId) {
+        const transformed = {
+          id: message.id,
+          conversationId: msgConversationId,
+          senderId: String(message.sender),
+          content: message.text,
+          text: message.text,
+          timestamp: message.created_at,
+          created_at: message.created_at,
+          read: false,
         };
-      });
-
-      // Update conversation's last message
-      setConvs((prev) =>
-        prev.map((c) =>
-          c.id === msgConversationId
-            ? {
-                ...c,
-                lastMessage: {
-                  content: msg.text,
-                  timestamp: msg.created_at,
-                  senderId: String(msg.sender || msg.senderId),
-                },
-                last_message_at: msg.created_at,
-              }
-            : c
-        )
-      );
-
-      // Mark as read if from other user and this is the active conversation
-      if (String(msg.sender) !== String(selfId) && msgConversationId === activeConversationId) {
-        // Send read receipt via WebSocket
-        sendRead(msg.id);
-        // Also mark as read via REST API
-        markRead(msgConversationId, msg.id).catch(() => {});
-        // Also update unread count in conversations list
+        
+        setMessages((prev) => {
+          const existing = prev[msgConversationId] || [];
+          if (existing.find((m) => m.id === transformed.id)) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [msgConversationId]: [transformed, ...existing],
+          };
+        });
+        
+        // Update conversation's last message
         setConvs((prev) =>
           prev.map((c) =>
             c.id === msgConversationId
-              ? { ...c, unreadCount: 0 }
+              ? {
+                  ...c,
+                  lastMessage: {
+                    content: message.text,
+                    timestamp: message.created_at,
+                    senderId: String(message.sender),
+                  },
+                  last_message_at: message.created_at,
+                  // Update unread count - only if message is from other user
+                  // Only increment if this message is newer than the last read message
+                  unreadCount: String(message.sender) === String(selfId) 
+                    ? 0 
+                    : (() => {
+                        const lastRead = lastReadMessageRef.current[msgConversationId];
+                        if (lastRead) {
+                          // Only count if this message is newer than the last read message
+                          const messageTime = new Date(message.created_at).getTime();
+                          const lastReadTime = new Date(lastRead.timestamp).getTime();
+                          if (messageTime > lastReadTime) {
+                            return (c.unreadCount || 0) + 1;
+                          }
+                          return c.unreadCount || 0;
+                        }
+                        // If no last read message, increment (all messages are unread)
+                        return (c.unreadCount || 0) + 1;
+                      })(),
+                }
               : c
           )
         );
       }
     },
+    onRead: () => {
+      // Handle read receipts if needed
+    },
+    onOpen: () => {
+      // Handle socket open if needed
+    },
+    onClose: () => {
+      // Handle socket close if needed
+    },
   });
 
   const handleSendMessage = async (conversationId, content) => {
     try {
-      // Optimistic update via WebSocket
-      sendText(content);
-      
-      // Confirm via REST API
+      // Send message via API
       const msg = await sendMessageAPI(conversationId, content);
       
+      // Add message to state immediately (optimistic update)
       const transformed = {
         id: msg.id,
         conversationId: conversationId,
@@ -662,6 +670,8 @@ export default function Chat() {
                   senderId: String(msg.sender),
                 },
                 last_message_at: msg.created_at,
+                // Clear unread count since we sent the message
+                unreadCount: 0,
               }
             : c
         )
@@ -672,12 +682,86 @@ export default function Chat() {
   };
 
   const handleListingClick = (listingId) => {
-    if (listingId) {
-      window.location.href = `/listing/${listingId}`;
+    navigate(`/listing/${listingId}`);
+  };
+
+  const handleConversationSelect = async (conversationId) => {
+    let conversationMessages = messages[conversationId] || [];
+    
+    // Load messages if they haven't been loaded yet
+    if (!loadedConversationsRef.current.has(conversationId)) {
+      try {
+        const params = { limit: 50 };
+        const { results, next_before } = await getMessages(conversationId, params);
+        const transformed = results.map((msg) => ({
+          id: msg.id,
+          conversationId: msg.conversation,
+          senderId: String(msg.sender),
+          content: msg.text,
+          text: msg.text,
+          timestamp: msg.created_at,
+          created_at: msg.created_at,
+          read: false,
+        }));
+        
+        conversationMessages = transformed; // Use newly loaded messages
+        
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: transformed,
+        }));
+        
+        setNextBefore((prev) => ({
+          ...prev,
+          [conversationId]: next_before || null,
+        }));
+        
+        loadedConversationsRef.current.add(conversationId);
+      } catch (e) {
+        console.error(`Failed to load messages for conversation ${conversationId}:`, e);
+      }
+    }
+    
+    // Mark as read and update unread count
+    if (conversationMessages.length > 0 && selfId) {
+      // Find messages from the other user (not from current user)
+      const unreadMessages = conversationMessages.filter(
+        (msg) => String(msg.senderId) !== String(selfId)
+      );
+      
+      if (unreadMessages.length > 0) {
+        const mostRecentUnread = unreadMessages[0];
+        try {
+          await markRead(conversationId, mostRecentUnread.id);
+          // Store the last read message ID for this conversation
+          lastReadMessageRef.current[conversationId] = {
+            id: mostRecentUnread.id,
+            timestamp: mostRecentUnread.created_at || mostRecentUnread.timestamp,
+          };
+          // Update unread count to 0 after marking as read
+          setConvs((prev) =>
+            prev.map((c) =>
+              c.id === conversationId
+                ? { ...c, unreadCount: 0 }
+                : c
+            )
+          );
+        } catch (e) {
+          console.error(`Failed to mark messages as read for ${conversationId}:`, e);
+        }
+      } else {
+        // No unread messages from other user, ensure count is 0
+        setConvs((prev) =>
+          prev.map((c) =>
+            c.id === conversationId
+              ? { ...c, unreadCount: 0 }
+              : c
+          )
+        );
+      }
     }
   };
 
-  // Handle loading older messages
   const handleLoadOlder = async (conversationId) => {
     const before = nextBefore[conversationId];
     if (before) {
@@ -690,9 +774,9 @@ export default function Chat() {
             conversationId: msg.conversation,
             senderId: String(msg.sender),
             content: msg.text,
-            text: msg.text,
+            text: msg.text, // Support both
             timestamp: msg.created_at,
-            created_at: msg.created_at,
+            created_at: msg.created_at, // Support both
             read: false,
           }));
           
@@ -718,140 +802,70 @@ export default function Chat() {
     }
   };
 
-  // Handle conversation selection - mark as read when clicked
-  const handleConversationSelect = async (conversationId) => {
-    // Mark messages as read when conversation is selected
-    const conversationMessages = messages[conversationId] || [];
-    if (conversationMessages.length > 0 && selfId) {
-      // Find the most recent message that was NOT sent by current user
-      const unreadMessages = conversationMessages.filter(
-        (msg) => String(msg.senderId) !== String(selfId)
-      );
-      
-      if (unreadMessages.length > 0) {
-        // Mark the most recent unread message as read
-        const mostRecentUnread = unreadMessages[0]; // Messages are sorted newest first
-        try {
-          await markRead(conversationId, mostRecentUnread.id);
-          // Update unread count in conversations list
-          setConvs((prev) =>
-            prev.map((c) =>
-              c.id === conversationId
-                ? { ...c, unreadCount: 0 }
-                : c
-            )
-          );
-        } catch (e) {
-          console.error(`Failed to mark messages as read for ${conversationId}:`, e);
-        }
-      }
-    }
-  };
-
-  // Debug logging
-  console.log("Chat component render:", {
-    selfId,
-    isOpen,
-    conversationsCount: convs.length,
-    messagesCount: Object.keys(messages).length,
-  });
-
-  if (!selfId) {
-    return <div>Loading user ID...</div>;
-  }
-
-  // Render background content based on previous path
-  const renderBackgroundContent = () => {
-    if (!previousPath) return null;
-    
-    const path = previousPath.split('?')[0]; // Remove query params
-    
-    if (path === '/' || path === '') {
-      return <Home />;
-    } else if (path === '/browse') {
-      return <BrowseListings />;
-    } else if (path === '/create-listing') {
-      return <CreateListing />;
-    } else if (path.startsWith('/listing/')) {
-      const listingId = path.split('/listing/')[1]?.split('/')[0];
-      if (listingId) {
-        return <ListingDetail />;
-      }
-    } else if (path === '/my-listings') {
-      return <MyListings />;
-    } else if (path === '/watchlist') {
-      return <Watchlist />;
-    }
-    
-    return <Home />; // Default fallback
-  };
-
-  // Calculate padding for background content based on chat sidebar state
   const getContentPadding = () => {
-    if (isFullPageMode || !isOpen) {
-      return 0; // No padding when full-page or closed
+    if (isFullPageMode || !isChatOpen) {
+      return 0;
     }
-    // On mobile, chat takes full width, so no padding needed
     if (isMobile) {
       return 0;
     }
-    // Add padding equal to sidebar width to prevent content from being hidden
-    return chatSidebarWidth || 400; // Default to 400px if not set yet
+    return chatSidebarWidth || 400;
   };
+
+  // Don't render if on /chat route (Chat.jsx handles full-page mode there)
+  const isOnChatRoute = location.pathname === '/chat' || location.pathname.startsWith('/chat/');
+  
+  if (!selfId || !isChatOpen || isOnChatRoute) {
+    return null;
+  }
 
   return (
     <>
-      {/* Render background content only if not in full-page mode */}
+      {/* Add padding to content when chat is open */}
       {!isFullPageMode && (
-        <div 
-          style={{ 
-            position: 'relative', 
-            zIndex: 1,
-            paddingRight: `${getContentPadding()}px`,
-            transition: 'padding-right 0.3s ease',
-            minHeight: '100vh',
+        <div
+          style={{
+            position: 'fixed',
+            top: '64px',
+            left: 0,
+            right: `${getContentPadding()}px`,
+            bottom: 0,
+            pointerEvents: 'none',
+            zIndex: 0,
           }}
-        >
-          {renderBackgroundContent()}
-        </div>
-      )}
-      
-      {/* Chat modal on top */}
-      {isOpen && (
-        <ChatModal
-          open={isOpen}
-          onOpenChange={(open) => {
-            setIsOpen(open);
-            // Reset sidebar width when closing
-            if (!open) {
-              setChatSidebarWidth(0);
-              // If closing and we're on /chat route, navigate back to previous page
-              const prevPath = previousPath || '/';
-              navigate(prevPath);
-            }
-          }}
-          // Only render in full-page mode when on /chat route
-          // Windowed mode is handled by GlobalChatWindow
-          asPage={isFullPageMode}
-          conversations={convs}
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          onListingClick={handleListingClick}
-          onConversationSelect={handleConversationSelect}
-          initialConversationId={conversationId}
-          currentUserId={selfId}
-          onFullPageChange={(fullPage) => {
-            setIsFullPageMode(fullPage);
-            // Reset sidebar width when going full-page
-            if (fullPage) {
-              setChatSidebarWidth(0);
-            }
-          }}
-          onSidebarWidthChange={setChatSidebarWidth} // Pass callback to track sidebar width
-          nextBefore={nextBefore}
-          onLoadOlder={handleLoadOlder}
         />
       )}
+      
+      {/* Chat modal */}
+      <ChatModal
+        open={isChatOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeChat();
+            setChatSidebarWidth(0);
+          }
+        }}
+        conversations={convs}
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        onListingClick={handleListingClick}
+        onConversationSelect={handleConversationSelect}
+        initialConversationId={conversationId}
+        currentUserId={selfId}
+        asPage={isFullPageMode}
+        onFullPageChange={(fullPage) => {
+          setIsFullPageMode(fullPage);
+          if (fullPage) {
+            setChatSidebarWidth(0);
+            // Navigate to /chat route for full-page mode
+            navigate('/chat');
+          }
+        }}
+        onSidebarWidthChange={setChatSidebarWidth}
+        nextBefore={nextBefore}
+        onLoadOlder={handleLoadOlder}
+      />
     </>
   );
 }
+
