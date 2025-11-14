@@ -6,8 +6,9 @@ export async function getListings(params = {}) {
   return data; // expecting { results, count, next, previous }
 }
 
-export async function getListing(id) {
-    const {data} = await apiClient.get(`${endpoints.listings}${id}/`);
+export async function getListing(id, options = {}) {
+    const params = options.trackView ? { trackView: true } : {};
+    const {data} = await apiClient.get(`${endpoints.listings}${id}/`, { params });
     return data;
 }
 
