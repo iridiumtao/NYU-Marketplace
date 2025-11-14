@@ -167,4 +167,181 @@ describe('Login page', () => {
       });
     });
   });
+
+  it('shows validation error for short password and does not call API', () => {
+    render(<Login />);
+
+    fillAndSubmitForm('user@nyu.edu', '123');
+
+    expect(
+      screen.getByText('Password must be at least 6 characters')
+    ).toBeInTheDocument();
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('shows backend login error message for non-404/403 errors', async () => {
+    apiClient.post.mockRejectedValueOnce({
+      response: {
+        status: 401,
+        data: { error: 'Invalid credentials' },
+      },
+    });
+
+    render(<Login />);
+
+    fillAndSubmitForm('user@nyu.edu', 'password123');
+
+    await screen.findByText('Invalid credentials');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('shows registration error when registration API fails', async () => {
+    apiClient.post
+      // First: login -> 404 requires_registration
+      .mockRejectedValueOnce({
+        response: {
+          status: 404,
+          data: { requires_registration: true },
+        },
+      })
+      // Second: register -> email error
+      .mockRejectedValueOnce({
+        response: {
+          data: { email: ['Email already in use'] },
+        },
+      });
+
+    render(<Login />);
+
+    fillAndSubmitForm('newuser@nyu.edu', 'password123');
+
+    await screen.findByText('Email already in use');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('navigates to verify-email even if sending OTP fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    apiClient.post
+      // login -> 403 requires_verification
+      .mockRejectedValueOnce({
+        response: {
+          status: 403,
+          data: { requires_verification: true },
+        },
+      })
+      // sendOtp -> fail
+      .mockRejectedValueOnce(new Error('Network error'));
+
+    render(<Login />);
+
+    fillAndSubmitForm('existing@nyu.edu', 'password123');
+
+    await waitFor(() => {
+      expect(apiClient.post).toHaveBeenNthCalledWith(
+        1,
+        endpoints.auth.login,
+        {
+          email: 'existing@nyu.edu',
+          password: 'password123',
+        }
+      );
+      expect(apiClient.post).toHaveBeenNthCalledWith(
+        2,
+        endpoints.auth.sendOtp,
+        {
+          email: 'existing@nyu.edu',
+        }
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/verify-email', {
+        state: { email: 'existing@nyu.edu' },
+      });
+    });
+
+    expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('logs welcome message when is_new_user is true', async () => {
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    apiClient.post.mockResolvedValueOnce({
+      data: {
+        access_token: 'access',
+        refresh_token: 'refresh',
+        user: { id: 1, email: 'new@nyu.edu' },
+        is_new_user: true,
+      },
+    });
+
+    render(<Login />);
+
+    fillAndSubmitForm('new@nyu.edu', 'password123');
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Welcome! Your account has been created.'
+      );
+      expect(mockNavigate).toHaveBeenCalledWith('/');
+    });
+
+    consoleSpy.mockRestore();
+  });
+
+  it('disables button and shows loading state while request is in-flight', async () => {
+    let resolvePromise;
+    const pendingPromise = new Promise((resolve) => {
+      resolvePromise = resolve;
+    });
+
+    apiClient.post.mockReturnValueOnce(pendingPromise);
+
+    render(<Login />);
+
+    fillAndSubmitForm('user@nyu.edu', 'password123');
+
+    const loadingButton = screen.getByRole('button', { name: /loading\.\.\./i });
+    expect(loadingButton).toBeDisabled();
+
+    resolvePromise({
+      data: {
+        access_token: 'access',
+        refresh_token: 'refresh',
+        user: { id: 1, email: 'user@nyu.edu' },
+      },
+    });
+
+    await waitFor(() => {
+      const normalButton = screen.getByRole('button', {
+        name: /login \/ register/i,
+      });
+      expect(normalButton).not.toBeDisabled();
+    });
+  });
+
+  it('handles hover events on the submit button without crashing', () => {
+    render(<Login />);
+
+    const button = screen.getByRole('button', {
+      name: /login \/ register/i,
+    });
+
+    fireEvent.mouseOver(button);
+    fireEvent.mouseOut(button);
+  });
+
+  it('shows generic login error when backend returns no error details', async () => {
+    apiClient.post.mockRejectedValueOnce({
+      response: {
+        status: 500,
+        data: {}, // 這樣 data?.error 和 data?.email?.[0] 都是 undefined
+      },
+    });
+
+    render(<Login />);
+
+    fillAndSubmitForm('user@nyu.edu', 'password123');
+
+    await screen.findByText('Login failed. Please try again.');
+  });
 });

@@ -122,4 +122,145 @@ describe('VerifyEmail page', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('shows backend error message when verification fails', async () => {
+    apiClient.post.mockRejectedValueOnce({
+      response: {
+        data: { detail: 'Invalid or expired code' },
+      },
+    });
+
+    render(<VerifyEmail />);
+
+    const inputs = screen.getAllByRole('textbox');
+    inputs.forEach((input) => {
+      fireEvent.change(input, { target: { value: '1' } });
+    });
+
+    const button = screen.getByRole('button', { name: /verify & continue/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Invalid or expired code/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows fallback error message when verification fails without response data', async () => {
+    apiClient.post.mockRejectedValueOnce(new Error('Network error'));
+
+    render(<VerifyEmail />);
+
+    const inputs = screen.getAllByRole('textbox');
+    inputs.forEach((input) => {
+      fireEvent.change(input, { target: { value: '1' } });
+    });
+
+    const button = screen.getByRole('button', { name: /verify & continue/i });
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Failed to verify the code\. Please try again\./i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when resend OTP fails', async () => {
+    apiClient.post.mockRejectedValueOnce({
+      response: {
+        data: { detail: 'Too many resend attempts' },
+      },
+    });
+
+    render(<VerifyEmail />);
+
+    const resendButton = screen.getByRole('button', { name: /resend otp/i });
+    fireEvent.click(resendButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Too many resend attempts/i)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('navigates back to login when back button is clicked', () => {
+    render(<VerifyEmail />);
+
+    const backButton = screen.getByRole('button', { name: /back to login/i });
+    fireEvent.click(backButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('fills OTP inputs when user pastes a code', () => {
+    const { container } = render(<VerifyEmail />);
+
+    const wrapper = container.querySelector('.verify-otp-wrapper');
+    const clipboardData = {
+      getData: vi.fn().mockReturnValue('123456'),
+    };
+
+    fireEvent.paste(wrapper, { clipboardData });
+
+    const inputs = screen.getAllByRole('textbox');
+    const code = inputs.map((input) => input.value).join('');
+    expect(code).toBe('123456');
+  });
+
+  it('moves focus to previous input on backspace when current input is empty', () => {
+    render(<VerifyEmail />);
+
+    const inputs = screen.getAllByRole('textbox');
+
+    inputs[2].focus();
+    fireEvent.keyDown(inputs[2], { key: 'Backspace' });
+
+    expect(inputs[1]).toHaveFocus();
+  });
+
+  it('clears OTP value when input is emptied', () => {
+    render(<VerifyEmail />);
+
+    const inputs = screen.getAllByRole('textbox');
+    const first = inputs[0];
+
+    fireEvent.change(first, { target: { value: '5' } });
+    expect(first.value).toBe('5');
+
+    fireEvent.change(first, { target: { value: '' } });
+    expect(first.value).toBe('');
+  });
+
+  it('shows missing email error when verifying code without email in location state', async () => {
+    mockLocation = { state: undefined };
+
+    render(<VerifyEmail />);
+
+    const inputs = screen.getAllByRole('textbox');
+    inputs.forEach((input) => {
+      fireEvent.change(input, { target: { value: '1' } });
+    });
+
+    const button = screen.getByRole('button', { name: /verify & continue/i });
+    fireEvent.click(button);
+
+    await screen.findByText('Missing email. Please login again.');
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('shows missing email error when resending OTP without email in location state', async () => {
+    mockLocation = { state: undefined };
+
+    render(<VerifyEmail />);
+
+    const resendButton = screen.getByRole('button', { name: /resend otp/i });
+    fireEvent.click(resendButton);
+
+    await screen.findByText('Missing email. Please login again.');
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
 });
