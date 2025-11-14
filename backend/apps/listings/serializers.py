@@ -375,6 +375,11 @@ class ListingUpdateSerializer(serializers.ModelSerializer):
 class CompactListingSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
 
+    # Expose seller username from user.netid (null-safe)
+    seller_username = serializers.CharField(
+        source="user.netid", read_only=True, allow_null=True
+    )
+
     class Meta:
         model = Listing
         fields = [
@@ -384,6 +389,9 @@ class CompactListingSerializer(serializers.ModelSerializer):
             "price",
             "status",
             "primary_image",
+            "seller_username",
+            "created_at",
+            "view_count",
         ]
 
     def get_primary_image(self, obj):

@@ -7,8 +7,11 @@ export async function getListings(params = {}) {
 }
 
 export async function getListing(id, options = {}) {
-    const params = options.trackView ? { trackView: true } : {};
-    const {data} = await apiClient.get(`${endpoints.listings}${id}/`, { params });
+    const config = {};
+    if (options.trackView) {
+        config.params = { track_view: "1" }; 
+    }
+    const { data } = await apiClient.get(`${endpoints.listings}${id}/`, config);
     return data;
 }
 
