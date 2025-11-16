@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import RangeSlider from "react-range-slider-input";
+import "react-range-slider-input/dist/style.css";
 
 // Custom hook for debouncing values
 function useDebounce(value, delay) {
@@ -21,6 +23,17 @@ function useDebounce(value, delay) {
 
 const PRICE_DEBOUNCE_DELAY = 300;
 const PRICE_MIN = 0;
+// TODO: Investigate dynamic PRICE_MAX based on actual listing prices
+// Options:
+// 1. Extend filter-options endpoint to return priceRange: { min: number, max: number }
+//    - Backend: Add aggregation query to filter_options() in views.py
+//    - Frontend: Use options.priceRange?.max || 2000 as fallback
+// 2. Calculate from listings data already fetched in BrowseListings
+//    - Find max price from current listings results
+//    - Pass as prop to Filters component
+// 3. Add separate price-stats endpoint
+//    - GET /api/v1/listings/price-stats/ returns { min_price, max_price }
+//    - Fetch on mount in BrowseListings and pass to Filters
 const PRICE_MAX = 2000;
 const PRICE_STEP = 10;
 
@@ -186,14 +199,11 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
     onChange?.(newFilters);
   };
 
-  const handleSliderMinChange = (e) => {
-    const newMin = Math.min(Number(e.target.value), maxSliderValue);
-    setPriceMinInput(String(newMin));
-  };
-
-  const handleSliderMaxChange = (e) => {
-    const newMax = Math.max(Number(e.target.value), minSliderValue);
-    setPriceMaxInput(String(newMax));
+  const handleSliderChange = (value) => {
+    // value is an array [min, max]
+    const [min, max] = value;
+    setPriceMinInput(String(min));
+    setPriceMaxInput(String(max));
   };
 
   return (
@@ -278,115 +288,51 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
         </h4>
 
         {/* Double Range Slider */}
-        <div style={{ marginBottom: 16, position: "relative", padding: "8px 0" }}>
-          <div style={{ position: "relative", height: 6, background: "#e5e7eb", borderRadius: 3, marginBottom: 8 }}>
-            {/* Active range track */}
-            <div
-              style={{
-                position: "absolute",
-                left: `${((minSliderValue - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * 100}%`,
-                width: `${((maxSliderValue - minSliderValue) / (PRICE_MAX - PRICE_MIN)) * 100}%`,
-                height: "100%",
-                background: "#56018D",
-                borderRadius: 3,
-              }}
-            />
-          </div>
-          <div style={{ position: "relative" }}>
-            <input
-              type="range"
-              min={PRICE_MIN}
-              max={PRICE_MAX}
-              step={PRICE_STEP}
-              value={minSliderValue}
-              onChange={handleSliderMinChange}
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: 6,
-                background: "transparent",
-                outline: "none",
-                WebkitAppearance: "none",
-                MozAppearance: "none",
-                pointerEvents: "auto",
-                zIndex: minSliderValue > maxSliderValue - PRICE_STEP ? 2 : 1,
-              }}
-              onInput={handleSliderMinChange}
-            />
-            <input
-              type="range"
-              min={PRICE_MIN}
-              max={PRICE_MAX}
-              step={PRICE_STEP}
-              value={maxSliderValue}
-              onChange={handleSliderMaxChange}
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: 6,
-                background: "transparent",
-                outline: "none",
-                WebkitAppearance: "none",
-                MozAppearance: "none",
-                pointerEvents: "auto",
-                zIndex: 2,
-              }}
-              onInput={handleSliderMaxChange}
-            />
-          </div>
+        <div style={{ marginBottom: 20, padding: "12px 0" }}>
+          <RangeSlider
+            min={PRICE_MIN}
+            max={PRICE_MAX}
+            step={PRICE_STEP}
+            value={[minSliderValue, maxSliderValue]}
+            onInput={handleSliderChange}
+            className="price-range-slider"
+          />
           <style>{`
-            input[type="range"]::-webkit-slider-thumb {
-              -webkit-appearance: none;
-              appearance: none;
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
+            .price-range-slider {
+              height: 8px;
+              background: #e5e7eb;
+              border-radius: 4px;
+            }
+            .price-range-slider .range-slider__range {
               background: #56018D;
-              cursor: pointer;
-              border: 2px solid #fff;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+              border-radius: 4px;
             }
-            input[type="range"]::-moz-range-thumb {
-              width: 18px;
-              height: 18px;
-              border-radius: 50%;
-              background: #56018D;
-              cursor: pointer;
-              border: 2px solid #fff;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            .price-range-slider .range-slider__thumb {
+              width: 24px;
+              height: 24px;
+              background: linear-gradient(135deg, #56018D 0%, #7B1FA2 100%);
+              border: 3px solid #fff;
+              box-shadow: 0 2px 8px rgba(86, 1, 141, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+              transition: all 0.2s ease;
             }
-            input[type="range"]::-webkit-slider-runnable-track {
-              height: 6px;
-              background: transparent;
+            .price-range-slider .range-slider__thumb:hover {
+              transform: translate(-50%, -50%) scale(1.1);
+              box-shadow: 0 4px 12px rgba(86, 1, 141, 0.4), 0 6px 16px rgba(0, 0, 0, 0.2);
             }
-            input[type="range"]::-moz-range-track {
-              height: 6px;
-              background: transparent;
+            .price-range-slider .range-slider__thumb:active {
+              transform: translate(-50%, -50%) scale(1.05);
+              box-shadow: 0 2px 6px rgba(86, 1, 141, 0.5), 0 4px 10px rgba(0, 0, 0, 0.25);
             }
-            input[type="range"]:hover::-webkit-slider-thumb {
-              background: #6a1b9a;
-            }
-            input[type="range"]:hover::-moz-range-thumb {
-              background: #6a1b9a;
+            .price-range-slider .range-slider__thumb:focus-visible {
+              outline: 0;
+              box-shadow: 0 0 0 6px rgba(86, 1, 141, 0.5);
             }
           `}</style>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 12,
-              color: "#6b7280",
-              marginTop: 4,
-            }}
-          >
-            <span>${minSliderValue}</span>
-            <span>${maxSliderValue}</span>
-          </div>
         </div>
 
         {/* Input Boxes */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 32 }}>
+          <div style={{ flex: "0 1 calc(50% - 16px)" }}>
             <label style={{ position: "absolute", left: "-9999px" }} htmlFor="price-min">
               Min price
             </label>
@@ -412,7 +358,7 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
               </div>
             )}
           </div>
-          <div>
+          <div style={{ flex: "0 1 calc(50% - 16px)" }}>
             <label style={{ position: "absolute", left: "-9999px" }} htmlFor="price-max">
               Max price
             </label>
