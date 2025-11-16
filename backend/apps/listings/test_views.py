@@ -68,7 +68,7 @@ class TestListingViewSet:
         ListingFactory.create_batch(3)
         response = api_client.get("/api/v1/listings/")
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 3
+        assert len(response.data["results"]) == 3
 
     def test_retrieve_listing_is_public(self, api_client):
         """
@@ -338,7 +338,7 @@ class TestListingViewSet:
 
         response = api_client.get("/api/v1/listings/")
         assert response.status_code == status.HTTP_200_OK
-        results = {item["listing_id"]: item for item in response.data}
+        results = {item["listing_id"]: item for item in response.data["results"]}
 
         assert results[listing1.listing_id]["primary_image"] == "primary.jpg"
         assert results[listing2.listing_id]["primary_image"] == "first.jpg"

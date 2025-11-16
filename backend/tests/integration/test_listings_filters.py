@@ -23,5 +23,6 @@ def test_integration_combined_filters(api_client=None):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert isinstance(data, list)
-    assert len(data) == 1
+    assert isinstance(data, dict)
+    assert "results" in data
+    assert len(data["results"]) == 1
