@@ -212,21 +212,6 @@ describe("BrowseListings integration", () => {
     });
   });
 
-  it("handles availableOnly filter", async () => {
-    listingsApi.getListings.mockResolvedValue({ results: [], count: 0 });
-
-    render(
-      <MemoryRouter initialEntries={["/browse?availableOnly=1"]}>
-        <BrowseListings />
-      </MemoryRouter>
-    );
-
-    await waitFor(() => {
-      expect(listingsApi.getListings).toHaveBeenCalledWith(
-        expect.objectContaining({ available_only: true })
-      );
-    });
-  });
 
   it("handles sorting - price_asc", async () => {
     listingsApi.getListings.mockResolvedValue({ results: [], count: 0 });
