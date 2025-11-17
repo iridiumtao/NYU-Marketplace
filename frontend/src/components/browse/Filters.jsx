@@ -38,9 +38,9 @@ function SelectAllCheckbox({ checked, indeterminate, onChange }) {
 // Component for grouped dorm locations with collapsible sections
 function DormLocationGroups({ dormLocations, selectedLocations, onToggle }) {
   const [expandedGroups, setExpandedGroups] = useState({
-    washington_square: true,
-    downtown: true,
-    other: true,
+    washington_square: false,
+    downtown: false,
+    other: false,
   });
 
   const toggleGroup = (groupName) => {
