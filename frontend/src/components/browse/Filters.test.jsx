@@ -121,7 +121,16 @@ describe('Filters', () => {
     const onChange = vi.fn();
     const { container } = render(<Filters initial={{}} onChange={onChange} options={mockOptions} />);
 
-    // Wait for locations to render
+    // Wait for Washington Square group to render and expand it
+    await waitFor(() => {
+      expect(screen.getByText('Washington Square')).toBeInTheDocument();
+    });
+
+    // Expand the Washington Square group to see dorm locations
+    const washingtonSquareButton = screen.getByText('Washington Square').closest('button');
+    fireEvent.click(washingtonSquareButton);
+
+    // Wait for Othmer Hall to appear after expanding
     await waitFor(() => {
       expect(screen.getByLabelText('Othmer Hall')).toBeInTheDocument();
     });
