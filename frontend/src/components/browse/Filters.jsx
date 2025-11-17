@@ -425,36 +425,36 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
       borderRadius: 12,
       padding: 24,
       boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+      position: "relative",
     }}>
-      {/* Clear All Button */}
+      {/* Clear All Button - Fixed position at top right */}
       {hasActiveFilters && (
-        <div style={{ marginBottom: 24, display: "flex", justifyContent: "flex-end" }}>
-          <button
-            type="button"
-            onClick={handleClearAll}
-            style={{
-              fontSize: 14,
-              color: "#56018D",
-              background: "transparent",
-              border: "1px solid #56018D",
-              borderRadius: 8,
-              padding: "6px 12px",
-              cursor: "pointer",
-              fontWeight: 500,
-              transition: "all 0.2s",
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = "#56018D";
-              e.target.style.color = "#fff";
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = "transparent";
-              e.target.style.color = "#56018D";
-            }}
-          >
-            Clear all filters
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleClearAll}
+          style={{
+            position: "absolute",
+            top: 24,
+            right: 24,
+            fontSize: 12,
+            color: "#56018D",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: "pointer",
+            fontWeight: 500,
+            textDecoration: "underline",
+            zIndex: 1,
+          }}
+          onMouseOver={(e) => {
+            e.target.style.opacity = "0.7";
+          }}
+          onMouseOut={(e) => {
+            e.target.style.opacity = "1";
+          }}
+        >
+          Clear all filters
+        </button>
       )}
 
       {/* Category Filter */}
