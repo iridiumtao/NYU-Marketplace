@@ -21,6 +21,13 @@ from django.core.exceptions import RequestDataTooBig
 from utils.s3_service import s3_service
 
 from apps.chat.models import Conversation, ConversationParticipant
+from .constants import (
+    DEFAULT_CATEGORIES,
+    DEFAULT_DORM_LOCATIONS_FLAT,
+    WASHINGTON_SQUARE_DORMS,
+    DOWNTOWN_DORMS,
+    OTHER,
+)
 from .filters import ListingFilter
 from .models import Listing
 from .serializers import (
@@ -313,40 +320,86 @@ class ListingViewSet(
         # Delete the listing (will cascade delete ListingImage records)
         instance.delete()
 
-    # Not connect to frontend because it only returns options that are
-    # actually in active listings
     @action(detail=False, methods=["get"], url_path="filter-options")
     def filter_options(self, request):
         """
-        Get filter options (categories and locations) from all **currently
-        active listings**. Returns only distinct values that actually exist
-        in active listings, sorted alphabetically. For example, if no active
-        listings contain "Furniture" category, it will not be included in
-        the returned options.
+        Get filter options (categories and dorm locations) from active listings
+        merged with defaults. Returns a union of available options from the
+        database and default options, ensuring users always see a complete set
+        of filter choices.
+
+        Note: The original MVP implementation returned only options that exist
+        in active listings, which made the filter options seem very limited when
+        the database had few listings. This endpoint now returns available | defaults
+        to provide a better user experience.
 
         Endpoint: GET /api/v1/listings/filter-options/
-        Response: {"categories": [...], "locations": [...]}
+        Response: {
+            "categories": [...],  # Sorted list of available + default categories
+            "dorm_locations": {  # Grouped by area (new format)
+                "washington_square": [...],
+                "downtown": [...],
+                "other": [...]
+            },
+            "locations": [...]  # Flat list for backward compatibility
+        }
+
+        Note: Currently, "locations" contains dorm locations only. In the future,
+        "location" may be used for non-dorm geographic locations
+        (e.g., via Google Maps API).
         """
-        # Get distinct categories (non-empty, sorted)
-        categories = (
+        # Get distinct categories from active listings (non-empty, sorted)
+        available_categories = set(
             Listing.objects.filter(status="active")
             .exclude(Q(category__isnull=True) | Q(category=""))
             .values_list("category", flat=True)
             .distinct()
-            .order_by("category")
         )
 
-        # Get distinct locations (non-empty, non-null, sorted)
-        locations = (
+        # Merge with defaults and sort
+        all_categories = sorted(set(DEFAULT_CATEGORIES) | available_categories)
+
+        # Get distinct dorm locations from active listings
+        # (non-empty, non-null, sorted)
+        available_locations = set(
             Listing.objects.filter(status="active")
             .exclude(Q(location__isnull=True) | Q(location=""))
             .values_list("location", flat=True)
             .distinct()
-            .order_by("location")
         )
 
+        # Merge with defaults
+        all_dorm_locations = set(DEFAULT_DORM_LOCATIONS_FLAT) | available_locations
+
+        # Group dorm locations by area
+        # Include defaults and any matching locations from DB
+        grouped_dorm_locations = {
+            "washington_square": sorted(
+                set(WASHINGTON_SQUARE_DORMS)
+                | (all_dorm_locations & set(WASHINGTON_SQUARE_DORMS))
+            ),
+            "downtown": sorted(
+                set(DOWNTOWN_DORMS) | (all_dorm_locations & set(DOWNTOWN_DORMS))
+            ),
+            "other": sorted(
+                set(OTHER)
+                | (
+                    all_dorm_locations
+                    - set(WASHINGTON_SQUARE_DORMS)
+                    - set(DOWNTOWN_DORMS)
+                )
+            ),
+        }
+
+        # Flat list for backward compatibility (sorted)
+        flat_locations = sorted(all_dorm_locations)
+
         return Response(
-            {"categories": list(categories), "locations": list(locations)},
+            {
+                "categories": all_categories,
+                "dorm_locations": grouped_dorm_locations,
+                "locations": flat_locations,  # Backward compatibility
+            },
             status=status.HTTP_200_OK,
         )
 

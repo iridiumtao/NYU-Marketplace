@@ -96,23 +96,37 @@ class TestFilterOptionsEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
     def test_filter_options_response_structure(self):
-        """Test response contains categories and locations keys."""
+        """Test response contains categories, dorm_locations, and locations keys."""
         response = self.client.get("/api/v1/listings/filter-options/")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "categories" in data
+        assert "dorm_locations" in data
         assert "locations" in data
         assert isinstance(data["categories"], list)
+        assert isinstance(data["dorm_locations"], dict)
         assert isinstance(data["locations"], list)
+        # Check dorm_locations structure
+        assert "washington_square" in data["dorm_locations"]
+        assert "downtown" in data["dorm_locations"]
+        assert "other" in data["dorm_locations"]
+        assert isinstance(data["dorm_locations"]["washington_square"], list)
+        assert isinstance(data["dorm_locations"]["downtown"], list)
+        assert isinstance(data["dorm_locations"]["other"], list)
 
     def test_filter_options_categories_distinct(self):
         """Test categories are distinct (no duplicates)."""
         response = self.client.get("/api/v1/listings/filter-options/")
         data = response.json()
         categories = data["categories"]
-        # Should have: Books, Electronics, Furniture (3 unique)
-        assert len(categories) == 3
+        # Should include defaults + available: Books, Clothing, Electronics,
+        # Furniture, Other, Sports (from defaults) + available ones
+        assert len(categories) >= 3  # At least the available ones
         assert len(set(categories)) == len(categories)  # No duplicates
+        # Should include default categories
+        assert "Books" in categories
+        assert "Electronics" in categories
+        assert "Furniture" in categories
 
     def test_filter_options_categories_sorted(self):
         """Test categories are sorted alphabetically."""
@@ -126,8 +140,8 @@ class TestFilterOptionsEndpoint:
         response = self.client.get("/api/v1/listings/filter-options/")
         data = response.json()
         locations = data["locations"]
-        # Should have 4 unique locations
-        assert len(locations) == 4
+        # Should include defaults + available locations
+        assert len(locations) >= 4  # At least the available ones
         assert len(set(locations)) == len(locations)  # No duplicates
 
     def test_filter_options_locations_sorted(self):
@@ -171,7 +185,7 @@ class TestFilterOptionsEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
     def test_filter_options_empty_database(self):
-        """Test endpoint with no listings returns empty arrays."""
+        """Test endpoint with no listings returns defaults."""
         # Delete all listings
         Listing.objects.all().delete()
 
@@ -179,8 +193,12 @@ class TestFilterOptionsEndpoint:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        assert data["categories"] == []
-        assert data["locations"] == []
+        # Should return default categories and locations
+        assert len(data["categories"]) > 0
+        assert len(data["locations"]) > 0
+        assert len(data["dorm_locations"]["washington_square"]) > 0
+        assert len(data["dorm_locations"]["downtown"]) > 0
+        assert len(data["dorm_locations"]["other"]) > 0
 
     def test_filter_options_expected_values(self):
         """Test endpoint returns expected categories and locations."""
@@ -189,17 +207,55 @@ class TestFilterOptionsEndpoint:
 
         categories = data["categories"]
         locations = data["locations"]
+        dorm_locations = data["dorm_locations"]
 
-        # Check expected categories (sorted)
+        # Check expected categories (should include defaults + available)
         assert "Books" in categories
         assert "Electronics" in categories
         assert "Furniture" in categories
 
-        # Check expected locations (sorted)
+        # Check expected locations in flat list
         assert "Clark Hall" in locations
         assert "Othmer Hall" in locations
         assert "Rubin Hall" in locations
         assert "Weinstein Hall" in locations
+
+        # Check locations are grouped correctly
+        assert "Othmer Hall" in dorm_locations["washington_square"]
+        assert "Clark Hall" in dorm_locations["washington_square"]
+        assert "Rubin Hall" in dorm_locations["washington_square"]
+        assert "Weinstein Hall" in dorm_locations["washington_square"]
+
+    def test_filter_options_includes_defaults(self):
+        """Test that defaults are always included even without listings."""
+        # Delete all listings
+        Listing.objects.all().delete()
+
+        response = self.client.get("/api/v1/listings/filter-options/")
+        data = response.json()
+
+        # Should include all default categories
+        categories = data["categories"]
+        assert "Books" in categories
+        assert "Clothing" in categories
+        assert "Electronics" in categories
+        assert "Furniture" in categories
+        assert "Other" in categories
+        assert "Sports" in categories
+
+        # Should include default dorm locations
+        locations = data["locations"]
+        assert "Alumni Hall" in locations
+        assert "Brittany Hall" in locations
+        assert "194 Mercer" in locations
+        assert "26th Street" in locations
+
+        # Should be grouped correctly
+        dorm_locations = data["dorm_locations"]
+        assert "Alumni Hall" in dorm_locations["washington_square"]
+        assert "194 Mercer" in dorm_locations["downtown"]
+        assert "Other Dorms" in dorm_locations["other"]
+        assert "Off-Campus" in dorm_locations["other"]
 
 
 @pytest.mark.django_db
