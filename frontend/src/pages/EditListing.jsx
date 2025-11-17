@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getListing, updateListing, getFilterOptions } from "../api/listings";
+import { getListing, updateListing } from "../api/listings";
 import { formatFileSize, validateImageFiles } from "../utils/fileUtils";
 import { CATEGORIES, LOCATIONS } from "../constants/filterOptions";
 
@@ -20,27 +20,8 @@ const EditListing = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  // TODO: Temporarily hardcoded until filter-options API is stable
-  // Use hardcoded values as default, API will override if successful
-  const [filterOptions, setFilterOptions] = useState({ categories: CATEGORIES, locations: LOCATIONS });
-
-  // Fetch filter options on mount (with hardcoded fallback)
-  useEffect(() => {
-    async function loadFilterOptions() {
-      try {
-        const options = await getFilterOptions();
-        // Only use API response if it has data
-        if (options.categories?.length > 0 && options.locations?.length > 0) {
-          setFilterOptions(options);
-        }
-        // Otherwise, keep hardcoded values (already set in useState)
-      } catch (e) {
-        console.error("Failed to load filter options:", e);
-        // Keep hardcoded values on error (already set in useState)
-      }
-    }
-    loadFilterOptions();
-  }, []);
+  // Use hardcoded filter options
+  const filterOptions = { categories: CATEGORIES, locations: LOCATIONS };
 
   // Fetch listing data
   useEffect(() => {

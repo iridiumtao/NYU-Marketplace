@@ -26,21 +26,17 @@ const PRICE_DEBOUNCE_DELAY = 300;
 const PRICE_MIN = 0;
 // TODO: Investigate dynamic PRICE_MAX based on actual listing prices
 // Options:
-// 1. Extend filter-options endpoint to return priceRange: { min: number, max: number }
-//    - Backend: Add aggregation query to filter_options() in views.py
-//    - Frontend: Use options.priceRange?.max || 2000 as fallback
-// 2. Calculate from listings data already fetched in BrowseListings
+// 1. Calculate from listings data already fetched in BrowseListings
 //    - Find max price from current listings results
 //    - Pass as prop to Filters component
-// 3. Add separate price-stats endpoint
+// 2. Add separate price-stats endpoint
 //    - GET /api/v1/listings/price-stats/ returns { min_price, max_price }
 //    - Fetch on mount in BrowseListings and pass to Filters
 const PRICE_MAX = 2000;
 const PRICE_STEP = 10;
 
 export default function Filters({ initial = {}, onChange, options = {} }) {
-  // TODO: Temporarily hardcoded until filter-options API is stable
-  // Use hardcoded values as fallback, but prefer API options if available
+  // Use hardcoded values as fallback, but prefer provided options if available
   const { categories: apiCategories = [], locations: apiLocations = [] } = options;
   const availableCategories = apiCategories.length > 0 ? apiCategories : CATEGORIES;
   const availableLocations = apiLocations.length > 0 ? apiLocations : LOCATIONS;

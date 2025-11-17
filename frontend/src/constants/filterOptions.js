@@ -1,6 +1,4 @@
-// TODO: Temporarily hardcoded until filter-options API is stable
-// In the future, these should be fetched from the backend API endpoint
-// GET /api/v1/listings/filter-options/
+// Hardcoded filter options for categories and locations
 
 export const CATEGORIES = [
     "Electronics",

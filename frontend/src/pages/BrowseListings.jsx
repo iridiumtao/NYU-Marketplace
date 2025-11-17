@@ -8,7 +8,7 @@ import Pagination from "../components/browse/Pagination";
 import Spinner from "../components/common/Spinner";
 import Empty from "../components/common/Empty";
 import ErrorBlock from "../components/common/ErrorBlock";
-import { getListings, getFilterOptions } from "../api/listings";
+import { getListings } from "../api/listings";
 import SEO from "../components/SEO";
 import { CATEGORIES, LOCATIONS } from "../constants/filterOptions";
 
@@ -56,9 +56,8 @@ export default function BrowseListings() {
   };
 
   const [filters, setFilters] = useState(initialFiltersFromUrl);
-  // TODO: Temporarily hardcoded until filter-options API is stable
-  // Use hardcoded values as default, API will override if successful
-  const [filterOptions, setFilterOptions] = useState({ categories: CATEGORIES, locations: LOCATIONS });
+  // Use hardcoded filter options
+  const filterOptions = { categories: CATEGORIES, locations: LOCATIONS };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -98,24 +97,6 @@ export default function BrowseListings() {
 
     setParams(next, { replace: false });
   };
-
-  // Fetch filter options on mount (with hardcoded fallback)
-  useEffect(() => {
-    async function loadFilterOptions() {
-      try {
-        const options = await getFilterOptions();
-        // Only use API response if it has data
-        if (options.categories?.length > 0 && options.locations?.length > 0) {
-          setFilterOptions(options);
-        }
-        // Otherwise, keep hardcoded values (already set in useState)
-      } catch (e) {
-        console.error("Failed to load filter options:", e);
-        // Keep hardcoded values on error (already set in useState)
-      }
-    }
-    loadFilterOptions();
-  }, []);
 
   // When URL changes externally (e.g., back/forward), update state
   useEffect(() => {
