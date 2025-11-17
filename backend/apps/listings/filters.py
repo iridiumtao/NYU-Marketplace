@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from .constants import DEFAULT_DORM_LOCATIONS_FLAT
 from .models import Listing
 
 
@@ -136,6 +137,10 @@ class ListingFilter(django_filters.FilterSet):
         Accepts comma-separated string: locations=Othmer Hall,Clark Hall
         Also supports multiple query params: locations=Othmer&locations=Clark
         Merges both formats if both are provided.
+
+        Special handling for "Off-Campus":
+        - Matches listings with dorm_location = "Off-Campus" (exact match)
+        - Also matches legacy listings with locations not in default dorm list
         """
         if not value:
             return queryset
@@ -163,7 +168,21 @@ class ListingFilter(django_filters.FilterSet):
 
         # Build OR query with Q objects (partial matching)
         q_objects = Q()
+
         for loc in location_list:
-            q_objects |= Q(dorm_location__icontains=loc)
+            if loc == "Off-Campus":
+                # Match exact "Off-Campus" or legacy locations not in default list
+                # Legacy locations are those with dorm_location not in
+                # DEFAULT_DORM_LOCATIONS_FLAT
+                q_objects |= Q(dorm_location__iexact="Off-Campus") | (
+                    Q(dorm_location__isnull=False)  # Not null
+                    & ~Q(dorm_location="")  # Not empty
+                    & ~Q(
+                        dorm_location__in=DEFAULT_DORM_LOCATIONS_FLAT
+                    )  # Not in default list
+                )
+            else:
+                # Regular partial matching for other locations
+                q_objects |= Q(dorm_location__icontains=loc)
 
         return queryset.filter(q_objects)
