@@ -265,7 +265,7 @@ class TestListingFilterLocations:
         assert filterset.is_valid()
         results = list(filterset.qs)
         assert len(results) == 1
-        assert "Othmer" in results[0].location
+        assert "Othmer" in results[0].dorm_location
 
     def test_filter_multiple_locations_comma_separated(self):
         """Test filtering by multiple locations using comma-separated values."""
