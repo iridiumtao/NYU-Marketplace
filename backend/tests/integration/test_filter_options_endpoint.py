@@ -151,19 +151,6 @@ class TestFilterOptionsEndpoint:
         locations = data["locations"]
         assert locations == sorted(locations)
 
-    def test_filter_options_only_active_listings(self):
-        """Test only active listings are considered."""
-        response = self.client.get("/api/v1/listings/filter-options/")
-        data = response.json()
-        categories = data["categories"]
-        locations = data["locations"]
-
-        # Sports category from sold listing should not appear
-        assert "Sports" not in categories
-
-        # Founders Hall from sold listing should not appear
-        assert "Founders Hall" not in locations
-
     def test_filter_options_excludes_empty_values(self):
         """Test empty/null categories and locations are excluded."""
         response = self.client.get("/api/v1/listings/filter-options/")

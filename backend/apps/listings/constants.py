@@ -3,14 +3,14 @@
 # listings for all categories/dorms, ensuring users always see a complete
 # set of filter options.
 
-# Default categories (alphabetically sorted)
+# Default categories
 DEFAULT_CATEGORIES = [
     "Books",
     "Clothing",
     "Electronics",
     "Furniture",
-    "Other",
     "Sports",
+    "Other",
 ]
 
 # Default dorm locations grouped by area
