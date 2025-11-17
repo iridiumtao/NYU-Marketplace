@@ -212,14 +212,13 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
   // Use hardcoded values as fallback, but prefer provided options if available
   const {
     categories: apiCategories = [],
-    locations: apiLocations = [],
     dorm_locations: apiDormLocations = null, // Grouped structure: { washington_square: [...], downtown: [...], other: [...] }
   } = options;
 
   const availableCategories = apiCategories.length > 0 ? apiCategories : CATEGORIES;
   // Use grouped dorm_locations if available, otherwise fallback to grouped structure
+  // Note: dormLocationsForDisplay will always be truthy due to DORM_LOCATIONS_GROUPED fallback
   const dormLocationsForDisplay = apiDormLocations || DORM_LOCATIONS_GROUPED;
-  const availableLocations = apiLocations.length > 0 ? apiLocations : LOCATIONS;
 
   const [filters, setFilters] = useState({
     categories: initial.categories || [],
@@ -442,42 +441,11 @@ export default function Filters({ initial = {}, onChange, options = {} }) {
         <h4 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 700, color: "#111" }}>
           Location
         </h4>
-        {dormLocationsForDisplay ? (
-          <DormLocationGroups
-            dormLocations={dormLocationsForDisplay}
-            selectedLocations={filters.locations}
-            onToggle={handleCheckbox}
-          />
-        ) : (
-          // Fallback to flat list if grouped structure not available
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {availableLocations.length === 0 ? (
-              <div style={{ color: "#6b7280", fontSize: 14 }}>Loading...</div>
-            ) : (
-              availableLocations.map((location) => (
-                <label
-                  key={location}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    fontSize: 15,
-                    color: "#374151",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={filters.locations.includes(location)}
-                    onChange={() => handleCheckbox("locations", location)}
-                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: "#56018D" }}
-                  />
-                  {location}
-                </label>
-              ))
-            )}
-          </div>
-        )}
+        <DormLocationGroups
+          dormLocations={dormLocationsForDisplay}
+          selectedLocations={filters.locations}
+          onToggle={handleCheckbox}
+        />
       </div>
 
       {/* Price Range */}
