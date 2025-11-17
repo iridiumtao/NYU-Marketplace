@@ -8,7 +8,7 @@ import Pagination from "../components/browse/Pagination";
 import Spinner from "../components/common/Spinner";
 import Empty from "../components/common/Empty";
 import ErrorBlock from "../components/common/ErrorBlock";
-import { getListings } from "../api/listings";
+import { getListings, getFilterOptions } from "../api/listings";
 import SEO from "../components/SEO";
 import { CATEGORIES, LOCATIONS } from "../constants/filterOptions";
 
@@ -56,8 +56,13 @@ export default function BrowseListings() {
   };
 
   const [filters, setFilters] = useState(initialFiltersFromUrl);
-  // Use hardcoded filter options
-  const filterOptions = { categories: CATEGORIES, locations: LOCATIONS };
+  // Filter options from API (with hardcoded fallback)
+  const [filterOptions, setFilterOptions] = useState({
+    categories: CATEGORIES,
+    locations: LOCATIONS,
+    dorm_locations: null, // Grouped structure for future UI enhancement
+  });
+  // const [filterOptionsLoading, setFilterOptionsLoading] = useState(false); // Commented out - uncomment if loading state needed
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -97,6 +102,36 @@ export default function BrowseListings() {
 
     setParams(next, { replace: false });
   };
+
+  // Fetch filter options from API on mount
+  useEffect(() => {
+    async function loadFilterOptions() {
+      // setFilterOptionsLoading(true); // Commented out - uncomment if loading state needed
+      try {
+        const apiOptions = await getFilterOptions();
+        // API returns: { categories: [...], dorm_locations: { washington_square: [...], downtown: [...], other: [...] }, locations: [...] }
+        // Flatten dorm_locations for current UI (flat checkbox list)
+        // TODO: Future enhancement - use grouped dorm_locations structure for grouped UI display
+        const flatLocations = apiOptions.locations || [];
+        setFilterOptions({
+          categories: apiOptions.categories || CATEGORIES,
+          locations: flatLocations.length > 0 ? flatLocations : LOCATIONS,
+          dorm_locations: apiOptions.dorm_locations || null, // Keep grouped structure for future use
+        });
+      } catch (e) {
+        console.error("Error loading filter options:", e);
+        // Fallback to hardcoded values on error
+        setFilterOptions({
+          categories: CATEGORIES,
+          locations: LOCATIONS,
+          dorm_locations: null,
+        });
+      } finally {
+        // setFilterOptionsLoading(false); // Commented out - uncomment if loading state needed
+      }
+    }
+    loadFilterOptions();
+  }, []);
 
   // When URL changes externally (e.g., back/forward), update state
   useEffect(() => {

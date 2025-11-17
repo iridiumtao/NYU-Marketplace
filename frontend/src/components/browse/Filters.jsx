@@ -37,8 +37,16 @@ const PRICE_STEP = 10;
 
 export default function Filters({ initial = {}, onChange, options = {} }) {
   // Use hardcoded values as fallback, but prefer provided options if available
-  const { categories: apiCategories = [], locations: apiLocations = [] } = options;
+  const {
+    categories: apiCategories = [],
+    locations: apiLocations = [],
+    dorm_locations: apiDormLocations = null, // Grouped structure: { washington_square: [...], downtown: [...], other: [...] }
+  } = options;
+
   const availableCategories = apiCategories.length > 0 ? apiCategories : CATEGORIES;
+  // Currently using flat locations array for checkbox selection
+  // TODO: Future enhancement - use grouped dorm_locations structure to display locations
+  // grouped by area (Washington Square, Downtown, Other) with section headers in the UI
   const availableLocations = apiLocations.length > 0 ? apiLocations : LOCATIONS;
 
   const [filters, setFilters] = useState({
