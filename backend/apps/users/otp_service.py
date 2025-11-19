@@ -58,7 +58,7 @@ def send_otp_email(email: str, otp: str, request=None) -> bool:
         from_email,
         email,
     )
-    
+
     # Prepare context for email template
     context = {
         "otp": otp,
