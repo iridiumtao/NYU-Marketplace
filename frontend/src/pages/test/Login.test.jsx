@@ -21,6 +21,7 @@ vi.mock('../../contexts/AuthContext', () => ({
 // Mock react-router-dom (only what we need)
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useLocation: () => ({ state: {} }),
 }));
 
 // Mock api client
