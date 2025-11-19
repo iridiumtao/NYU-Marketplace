@@ -1,5 +1,9 @@
-import React, { useState, useRef } from "react";
+// frontend/src/pages/VerifyEmail.jsx
+import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import apiClient from "../api/client";
+import { endpoints } from "../api/endpoints";
 import "./VerifyEmail.css";
 
 const OTP_LENGTH = 6;
@@ -7,9 +11,10 @@ const OTP_LENGTH = 6;
 export default function VerifyEmail() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { login } = useAuth();
 
-  // 之後從 login 帶 email 過來，現在沒帶就用預設
-  const email = location.state?.email || "your.email@nyu.edu";
+  // Login 頁 navigate("/verify-email", { state: { email } })
+  const email = location.state?.email || "";
 
   const [otpValues, setOtpValues] = useState(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
@@ -18,6 +23,13 @@ export default function VerifyEmail() {
   const [resendLoading, setResendLoading] = useState(false);
 
   const inputsRef = useRef([]);
+
+  // 如果沒有 email（例如直接打網址 /refresh），就送回 login
+  useEffect(() => {
+    if (!email) {
+      navigate("/login", { replace: true });
+    }
+  }, [email, navigate]);
 
   const handleChange = (index, value) => {
     const numericValue = value.replace(/\D/g, "");
@@ -66,7 +78,7 @@ export default function VerifyEmail() {
     }
   };
 
-  const handleVerify = (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault();
     const code = otpValues.join("");
 
@@ -74,34 +86,70 @@ export default function VerifyEmail() {
       setError("Please enter the 6-digit code.");
       return;
     }
+    if (!email) {
+      setError("Missing email. Please login again.");
+      return;
+    }
 
-    setError("");
-    setInfoMessage("");
-    setLoading(true);
+    try {
+      setLoading(true);
+      setError("");
+      setInfoMessage("");
 
-    // 🔜 之後改成真正呼叫 verify OTP API
-    setTimeout(() => {
+      const response = await apiClient.post(endpoints.auth.verifyOtp, {
+        email,
+        otp: code,
+      });
+
+      // 後端回：access_token, refresh_token, user
+      login(
+        response.data.access_token,
+        response.data.refresh_token,
+        response.data.user
+      );
+
+      // 驗證成功 → 回到首頁（或你想要的頁面）
+      navigate("/", { replace: true });
+    } catch (err) {
+      const data = err.response?.data;
+      setError(
+        data?.error ||
+          data?.detail ||
+          "Failed to verify the code. Please try again."
+      );
+    } finally {
       setLoading(false);
-      console.log("Fake verify, OTP:", code);
-      setInfoMessage("Verification simulated. (API integration coming soon)");
-      // 之後驗證成功再導去目標頁
-      // navigate("/");
-    }, 800);
+    }
   };
 
-  const handleResend = () => {
-    setError("");
-    setInfoMessage("");
-    setResendLoading(true);
+  const handleResend = async () => {
+    if (!email) {
+      setError("Missing email. Please login again.");
+      return;
+    }
 
-    // 🔜 之後改成真正呼叫 resend OTP API
-    setTimeout(() => {
-      setResendLoading(false);
-      console.log("Fake resend OTP to:", email);
+    try {
+      setResendLoading(true);
+      setError("");
+      setInfoMessage("");
+
+      const response = await apiClient.post(endpoints.auth.resendOtp, {
+        email,
+      });
+
       setInfoMessage(
-        "A new code would be sent to your email. (This is a fake action for now)"
+        response.data.message || "Verification code sent successfully."
       );
-    }, 600);
+    } catch (err) {
+      const data = err.response?.data;
+      setError(
+        data?.error ||
+          data?.detail ||
+          "Failed to resend verification code. Please try again."
+      );
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
@@ -122,35 +170,34 @@ export default function VerifyEmail() {
 
         {/* Icon */}
         <div className="verify-icon-wrapper">
-            <div className="verify-icon">
-                <svg
-                    className="verify-icon-mail"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                >
-                    <rect
-                        x="3"
-                        y="6"
-                        width="18"
-                        height="12"
-                        rx="2"
-                        ry="2"
-                        fill="none"
-                        stroke="#5B21B6"
-                        strokeWidth="1.8"
-                    />
-                    <path
-                        d="M4 8l8 5 8-5"
-                        fill="none"
-                        stroke="#5B21B6"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </svg>
-            </div>
+          <div className="verify-icon">
+            <svg
+              className="verify-icon-mail"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <rect
+                x="3"
+                y="6"
+                width="18"
+                height="12"
+                rx="2"
+                ry="2"
+                fill="none"
+                stroke="#5B21B6"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M4 8l8 5 8-5"
+                fill="none"
+                stroke="#5B21B6"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
-
 
         {/* Title & subtitle */}
         <h2 className="verify-title">Verify Your Email</h2>
