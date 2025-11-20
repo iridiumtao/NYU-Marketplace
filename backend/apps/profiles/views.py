@@ -67,7 +67,7 @@ class ProfileViewSet(
     ]
     ordering_fields = ["created_at", "full_name", "username"]
     ordering = ["-created_at"]
-    search_fields = ["full_name", "username", "location"]
+    search_fields = ["full_name", "username", "dorm_location"]
 
     def get_queryset(self):
         """Optimize queryset with select_related to avoid N+1 queries"""

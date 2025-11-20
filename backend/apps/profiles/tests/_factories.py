@@ -20,7 +20,7 @@ def make_profile(user: User, **overrides) -> Profile:
         "full_name": overrides.pop("full_name", f"{user.email.split('@')[0]} User"),
         "username": overrides.pop("username", user.email.split("@")[0]),
         "phone": overrides.pop("phone", None),
-        "location": overrides.pop("location", "New York, NY"),
+        "dorm_location": overrides.pop("dorm_location", "New York, NY"),
         "bio": overrides.pop("bio", "Test user bio"),
         "avatar_url": overrides.pop("avatar_url", None),
     }

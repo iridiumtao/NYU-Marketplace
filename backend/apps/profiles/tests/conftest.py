@@ -54,7 +54,7 @@ def profile_factory(db):
         defaults = {
             "full_name": f"{user.email.split('@')[0]} User",
             "username": username,
-            "location": "New York, NY",
+            "dorm_location": "New York, NY",
             "bio": "Test user bio",
         }
         defaults.update(overrides)

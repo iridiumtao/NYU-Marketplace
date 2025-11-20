@@ -22,7 +22,7 @@ class Profile(models.Model):
             )
         ],
     )
-    location = models.CharField(max_length=100, blank=True, null=True)
+    dorm_location = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField(max_length=500, blank=True, null=True)
     avatar_url = models.CharField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -10,17 +10,17 @@ class ProfileAdmin(admin.ModelAdmin):
         "full_name",
         "username",
         "user_email",
-        "location",
+        "dorm_location",
         "created_at",
     )
     list_filter = ("created_at",)
-    search_fields = ("full_name", "username", "user__email", "location")
+    search_fields = ("full_name", "username", "user__email", "dorm_location")
     readonly_fields = ("profile_id", "created_at", "updated_at")
     ordering = ("-created_at",)
 
     fieldsets = (
         ("Basic Information", {"fields": ("user", "full_name", "username")}),
-        ("Contact Information", {"fields": ("phone", "location")}),
+        ("Contact Information", {"fields": ("phone", "dorm_location")}),
         ("Profile Details", {"fields": ("bio", "avatar_url")}),
         (
             "Metadata",

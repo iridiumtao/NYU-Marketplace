@@ -35,7 +35,7 @@ def test_create_profile_success(client_and_user):
             "full_name": "John Doe",
             "username": "johndoe",
             "phone": "+12125551234",
-            "location": "Manhattan, NY",
+            "dorm_location": "Manhattan, NY",
             "bio": "Test bio",
         },
         format="json",
@@ -45,7 +45,7 @@ def test_create_profile_success(client_and_user):
     data = res.json()
     assert data["full_name"] == "John Doe"
     assert data["username"] == "johndoe"
-    assert data["location"] == "Manhattan, NY"
+    assert data["dorm_location"] == "Manhattan, NY"
 
 
 def test_create_profile_duplicate_username(two_users, profile_factory):

@@ -64,7 +64,7 @@ def test_create_profile_success(client):
         {
             "full_name": "John Doe",
             "username": "johndoe",
-            "location": "Manhattan, NY",
+            "dorm_location": "Manhattan, NY",
         },
         format="json",
     )
@@ -256,7 +256,7 @@ def test_profile_detail_includes_all_fields(user_with_profile):
         "username",
         "email",
         "phone",
-        "location",
+        "dorm_location",
         "bio",
         "avatar_url",
         "active_listings",

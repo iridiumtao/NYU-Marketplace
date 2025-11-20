@@ -22,7 +22,7 @@ def test_profile_detail_serializer(user_with_profile):
     assert "username" in data
     assert "email" in data
     assert "phone" in data
-    assert "location" in data
+    assert "dorm_location" in data
     assert "bio" in data
     assert "avatar_url" in data
     assert "active_listings" in data
@@ -41,7 +41,7 @@ def test_profile_create_serializer_valid_data(nyu_user_factory):
         "full_name": "Test User",
         "username": "testuser",
         "phone": "+12125551234",
-        "location": "Manhattan, NY",
+        "dorm_location": "Manhattan, NY",
         "bio": "Test bio",
     }
 
@@ -164,7 +164,7 @@ def test_compact_profile_serializer(user_with_profile):
         "username",
         "email",
         "avatar_url",
-        "location",
+        "dorm_location",
     }
     assert set(data.keys()) == expected_fields
 
