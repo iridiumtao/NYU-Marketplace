@@ -137,7 +137,8 @@ SIMPLE_JWT = {
         days=int(os.environ.get("JWT_REFRESH_DAYS", 7))
     ),
     "ROTATE_REFRESH_TOKENS": os.environ.get("JWT_ROTATE", "False").lower() == "true",
-    "BLACKLIST_AFTER_ROTATION": os.environ.get("JWT_BLACKLIST", "False").lower() == "true",
+    "BLACKLIST_AFTER_ROTATION": os.environ.get("JWT_BLACKLIST", "False").lower()
+    == "true",
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
