@@ -637,14 +637,14 @@ const EditListing = () => {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
               {/* Preview Button */}
               <button
                 type="button"
                 onClick={updatePreview}
                 disabled={saving}
                 style={{
-                  flex: 1,
+                  width: "100%",
                   background: saving ? "#9ca3af" : "#fff",
                   color: saving ? "#fff" : "#56018D",
                   padding: "14px 0",
@@ -666,13 +666,13 @@ const EditListing = () => {
                 type="submit"
                 disabled={saving}
                 style={{
-                  flex: 1,
+                  width: "100%",
                   background: saving ? "#9ca3af" : "#56018D",
                   color: "#fff",
                   padding: "14px 0",
                   fontSize: 16,
                   fontWeight: 600,
-                  border: "none",
+                  border: "2px solid transparent",
                   borderRadius: 8,
                   cursor: saving ? "not-allowed" : "pointer",
                   transition: "all 0.2s",
