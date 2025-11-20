@@ -13,7 +13,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // Login 頁 navigate("/verify-email", { state: { email } })
+  // Login page should call navigate("/verify-email", { state: { email } })
   const email = location.state?.email || "";
 
   const [otpValues, setOtpValues] = useState(Array(OTP_LENGTH).fill(""));
@@ -24,7 +24,7 @@ export default function VerifyEmail() {
 
   const inputsRef = useRef([]);
 
-  // 如果沒有 email（例如直接打網址 /refresh），就送回 login
+  // If no email is provided (e.g., user hits the URL directly), send them back to login
   useEffect(() => {
     if (!email) {
       navigate("/login", { replace: true });
@@ -101,14 +101,14 @@ export default function VerifyEmail() {
         otp: code,
       });
 
-      // 後端回：access_token, refresh_token, user
+      // Backend responds with access_token, refresh_token, and user
       login(
         response.data.access_token,
         response.data.refresh_token,
         response.data.user
       );
 
-      // 驗證成功 → 回到首頁（或你想要的頁面）
+      // Verification succeeded → send the user back to the home page (or desired route)
       navigate("/", { replace: true });
     } catch (err) {
       const data = err.response?.data;

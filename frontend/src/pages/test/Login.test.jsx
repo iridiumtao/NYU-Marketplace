@@ -335,7 +335,7 @@ describe('Login page', () => {
     apiClient.post.mockRejectedValueOnce({
       response: {
         status: 500,
-        data: {}, // 這樣 data?.error 和 data?.email?.[0] 都是 undefined
+        data: {}, // This keeps both data?.error and data?.email?.[0] undefined
       },
     });
 
