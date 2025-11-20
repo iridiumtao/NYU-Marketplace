@@ -25,6 +25,7 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 # Application definition
 INSTALLED_APPS = [
     "apps.users",
+    "apps.profiles",
     "apps.listings",
     "apps.chat",
     "channels",
@@ -129,10 +130,15 @@ REST_FRAMEWORK = {
 
 # JWT settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=int(os.environ.get("JWT_ACCESS_MINUTES", 120))  # 2 hours
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=int(os.environ.get("JWT_REFRESH_DAYS", 7))
+    ),
+    "ROTATE_REFRESH_TOKENS": os.environ.get("JWT_ROTATE", "False").lower() == "true",
+    "BLACKLIST_AFTER_ROTATION": os.environ.get("JWT_BLACKLIST", "False").lower()
+    == "true",
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
@@ -153,7 +159,7 @@ CACHES = {
 EMAIL_BACKEND = os.environ.get(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "email-smtp.us-east-1.amazonaws.com")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
@@ -161,6 +167,14 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 OTP_EMAIL_SENDER = os.environ.get(
     "OTP_EMAIL_SENDER", EMAIL_HOST_USER or "noreply@nyu-marketplace.com"
 )
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "OTP_EMAIL_SENDER",
+    "no-reply@nyumarketplace.me",
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
 # Django upload size limits
 # Configure to allow uploads up to 120MB (10MB × 10 images + overhead)
 # This matches nginx client_max_body_size configuration
