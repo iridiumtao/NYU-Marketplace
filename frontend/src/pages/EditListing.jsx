@@ -218,9 +218,6 @@ const EditListing = () => {
         formData.append("remove_image_ids", JSON.stringify(removeImageIds));
       }
 
-      // Update preview before saving (so user sees the preview immediately)
-      updatePreview();
-
       // Send PATCH request using updateListing API function
       await updateListing(id, formData);
 
@@ -639,27 +636,53 @@ const EditListing = () => {
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                background: saving ? "#9ca3af" : "#56018D",
-                color: "#fff",
-                padding: "14px 0",
-                fontSize: 16,
-                fontWeight: 600,
-                border: "none",
-                borderRadius: 8,
-                cursor: saving ? "not-allowed" : "pointer",
-                marginTop: 12,
-                transition: "all 0.2s",
-              }}
-              onMouseOver={(e) => !saving && (e.target.style.filter = "brightness(1.1)")}
-              onMouseOut={(e) => !saving && (e.target.style.filter = "brightness(1)")}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+            {/* Action Buttons */}
+            <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+              {/* Preview Button */}
+              <button
+                type="button"
+                onClick={updatePreview}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  background: saving ? "#9ca3af" : "#fff",
+                  color: saving ? "#fff" : "#56018D",
+                  padding: "14px 0",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  border: saving ? "none" : "2px solid #56018D",
+                  borderRadius: 8,
+                  cursor: saving ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseOver={(e) => !saving && (e.target.style.background = "#f3e8ff")}
+                onMouseOut={(e) => !saving && (e.target.style.background = "#fff")}
+              >
+                Preview
+              </button>
+
+              {/* Save and Close Button */}
+              <button
+                type="submit"
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  background: saving ? "#9ca3af" : "#56018D",
+                  color: "#fff",
+                  padding: "14px 0",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: saving ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseOver={(e) => !saving && (e.target.style.filter = "brightness(1.1)")}
+                onMouseOut={(e) => !saving && (e.target.style.filter = "brightness(1)")}
+              >
+                {saving ? "Saving..." : "Save and Close"}
+              </button>
+            </div>
           </form>
         </div>
 
