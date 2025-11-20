@@ -101,27 +101,42 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        """Create profile and upload avatar to S3 if provided"""
+        """Create profile and upload avatar to S3 if provided.
+
+        If profile creation fails for any reason, the user's authentication
+        details are also deleted since profile creation is part of the
+        registration flow.
+        """
         avatar_file = validated_data.pop("avatar", None)
         request = self.context.get("request")
+        user = request.user
 
-        # Create profile
-        profile = Profile.objects.create(user=request.user, **validated_data)
+        try:
+            # Create profile
+            profile = Profile.objects.create(user=user, **validated_data)
 
-        # Upload avatar to S3 if provided
-        if avatar_file:
-            try:
-                avatar_url = s3_service.upload_image(
-                    avatar_file, profile.user.id, folder_name="profiles"
-                )
-                profile.avatar_url = avatar_url
-                profile.save()
-            except Exception as e:
-                # Rollback profile creation if avatar upload fails
-                profile.delete()
-                raise serializers.ValidationError(f"Failed to upload avatar: {str(e)}")
+            # Upload avatar to S3 if provided
+            if avatar_file:
+                try:
+                    avatar_url = s3_service.upload_image(
+                        avatar_file, profile.user.id, folder_name="profiles"
+                    )
+                    profile.avatar_url = avatar_url
+                    profile.save()
+                except Exception as e:
+                    # Rollback profile creation if avatar upload fails
+                    profile.delete()
+                    raise serializers.ValidationError(f"Failed to upload avatar: {str(e)}")
 
-        return profile
+            return profile
+        except serializers.ValidationError:
+            # For validation errors (like avatar upload failure), delete the user
+            user.delete()
+            raise
+        except Exception as e:
+            # For any other exception during profile creation, delete the user
+            user.delete()
+            raise serializers.ValidationError(f"Failed to create profile: {str(e)}")
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):

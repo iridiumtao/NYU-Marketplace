@@ -93,10 +93,19 @@ class ProfileViewSet(
         return ProfileDetailSerializer
 
     def perform_destroy(self, instance):
-        """Delete S3 avatar before deleting profile"""
+        """Delete S3 avatar, profile, and user authentication details.
+
+        When a user deletes their profile, it indicates they want to exit
+        the platform, so we also delete their authentication information.
+        """
+        user = instance.user
+
+        # Delete S3 avatar if exists
         if instance.avatar_url:
             s3_service.delete_image(instance.avatar_url)
-        instance.delete()
+
+        # Delete the user (this will cascade delete the profile due to OneToOne relationship)
+        user.delete()
 
     @action(detail=False, methods=["get", "put", "patch", "delete"], url_path="me")
     def me(self, request):
