@@ -1,19 +1,30 @@
 import apiClient from "./client";
 import { endpoints } from "./endpoints";
 
-const base = endpoints.users; // '/users/'
+const profileBase = endpoints.profiles.base;
+const profileMe = endpoints.profiles.me;
 
-export const fetchMeStatus = () => apiClient.get(`${base}me/status/`);
+export const fetchMeStatus = async () => {
+  try {
+    const response = await apiClient.get(profileMe);
+    return { data: { profile_complete: true, profile: response.data } };
+  } catch (error) {
+    if (error?.response?.status === 404) {
+      return { data: { profile_complete: false } };
+    }
+    throw error;
+  }
+};
 
-export const fetchCompleteProfile = () => apiClient.get(`${base}me/complete-profile/`);
+export const fetchCompleteProfile = () => apiClient.get(profileMe);
 
 export const patchCompleteProfile = (payload) =>
-  apiClient.patch(`${base}me/complete-profile/`, payload);
+  apiClient.patch(profileMe, payload);
 
 export const uploadAvatar = (file) => {
   const fd = new FormData();
-  fd.append("file", file);
-  return apiClient.post(`${base}me/upload-avatar/`, fd, {
+  fd.append("new_avatar", file);
+  return apiClient.patch(profileMe, fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
