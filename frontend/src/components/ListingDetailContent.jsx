@@ -298,8 +298,8 @@ export default function ListingDetailContent({
                         <div className="listing-detail-main-image-wrapper">
                             <div
                                 className="listing-detail-main-image"
-                                onClick={() => hasImages && setLightboxOpen(true)}
-                                style={{ cursor: hasImages ? "pointer" : "default" }}
+                                onClick={() => !isPreview && hasImages && setLightboxOpen(true)}
+                                style={{ cursor: !isPreview && hasImages ? "pointer" : "default" }}
                             >
                                 {hasImages ? (
                                     <>
@@ -377,14 +377,16 @@ export default function ListingDetailContent({
                             {/* Title with Share Button */}
                             <div className="listing-detail-title-container">
                                 <h1 className="listing-detail-title">{listing.title}</h1>
-                                <button
-                                    className="listing-detail-share-button"
-                                    onClick={handleShare}
-                                    aria-label="Share listing"
-                                    title="Share this listing"
-                                >
-                                    <FaShareAlt />
-                                </button>
+                                {!isPreview && (
+                                    <button
+                                        className="listing-detail-share-button"
+                                        onClick={handleShare}
+                                        aria-label="Share listing"
+                                        title="Share this listing"
+                                    >
+                                        <FaShareAlt />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Price */}
