@@ -68,7 +68,6 @@ export default function ListingDetailContent({
     // Fetch seller stats (active listings and sold items count)
     useEffect(() => {
         if (!listing?.user_netid && !listing?.user_email) return;
-        if (isPreview) return; // Skip seller stats in preview mode
 
         let mounted = true;
         (async () => {
@@ -153,7 +152,7 @@ export default function ListingDetailContent({
         return () => {
             mounted = false;
         };
-    }, [listing, isPreview]);
+    }, [listing]);
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -433,18 +432,16 @@ export default function ListingDetailContent({
                             <div className="listing-detail-separator"></div>
 
                             {/* Seller Information Card */}
-                            {!isPreview && (
-                                <SellerCard
-                                    username={sellerData.username}
-                                    memberSince={sellerData.memberSince}
-                                    activeListings={sellerData.activeListings}
-                                    soldItems={sellerData.soldItems}
-                                    avatarUrl={sellerData.avatarUrl}
-                                    onViewProfile={onViewProfile}
-                                />
-                            )}
+                            <SellerCard
+                                username={sellerData.username}
+                                memberSince={sellerData.memberSince}
+                                activeListings={sellerData.activeListings}
+                                soldItems={sellerData.soldItems}
+                                avatarUrl={sellerData.avatarUrl}
+                                onViewProfile={onViewProfile}
+                            />
 
-                            {!isPreview && <div className="listing-detail-separator"></div>}
+                            <div className="listing-detail-separator"></div>
 
                             {/* Action Buttons */}
                             {!isPreview && (
