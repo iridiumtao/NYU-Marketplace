@@ -692,10 +692,10 @@ const EditListing = () => {
             borderRadius: 16,
             padding: 40,
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            position: isMobile ? "relative" : "sticky",
-            top: isMobile ? "auto" : 96,
-            maxHeight: isMobile ? "none" : "calc(100vh - 120px)",
-            overflowY: isMobile ? "visible" : "auto",
+            position: "relative",
+            top: "auto",
+            maxHeight: "none",
+            overflowY: "visible",
             minWidth: 0,
           }}
         >
